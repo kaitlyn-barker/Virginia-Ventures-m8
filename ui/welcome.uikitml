@@ -1,0 +1,55 @@
+<!-- How-to-play card for Money Moves. Compiled to public/ui/welcome.json. -->
+<style>
+  .panel { display: flex; flex-direction: column; align-items: center; padding: 5; width: 128; background-color: #fffbf0; border-width: 1.5; border-color: #1F3A5F; border-radius: 6; }
+  .eyebrow { font-size: 3; font-weight: bold; color: #8a6118; text-align: center; letter-spacing: 2; }
+  .heading { font-size: 7; font-weight: bold; color: #1F3A5F; text-align: center; margin-top: 1; }
+  .step-area { display: flex; flex-direction: column; align-items: center; width: 116; margin-top: 3; }
+  .step { display: flex; flex-direction: column; align-items: center; width: 116; padding: 5; background-color: #fdf3dd; border-width: 1.5; border-color: #c8962a; border-radius: 5; }
+  .step-title { font-size: 5.2; font-weight: bold; color: #1F3A5F; text-align: center; }
+  .step-body { font-size: 4; color: #1F3A5F; text-align: center; margin-top: 2.5; }
+  .step-indicator { font-size: 3.2; font-weight: bold; color: #5f5f5f; text-align: center; width: 40; margin-top: 3; }
+  .button-row { display: flex; flex-direction: row; justify-content: center; margin-top: 3; }
+  .back-button { display: flex; align-items: center; justify-content: center; margin-left: 2; margin-right: 2; padding-top: 3; padding-bottom: 3; padding-left: 7; padding-right: 7; background-color: #c9c2b5; border-radius: 4; cursor: pointer; }
+  .back-label { font-size: 4; font-weight: bold; color: #7a7a7a; }
+  .next-button { display: flex; align-items: center; justify-content: center; margin-left: 2; margin-right: 2; padding-top: 3; padding-bottom: 3; padding-left: 7; padding-right: 7; background-color: #c8962a; border-radius: 4; cursor: pointer; }
+  .next-label { font-size: 4; font-weight: bold; color: #1F3A5F; }
+</style>
+
+<div class="panel">
+  <span class="eyebrow">HOW TO PLAY</span>
+  <span class="heading">Money Moves</span>
+
+  <div class="step-area">
+    <div id="step-1" class="step">
+      <span class="step-title">Happy Birthday!</span>
+      <span class="step-body">You just got older, and a relative gave you twenty dollars. Over three life stages you will earn, spend, save, and invest your way to becoming a money pro. Here is how it works.</span>
+    </div>
+    <div id="step-2" class="step">
+      <span class="step-title">1. Get Around</span>
+      <span class="step-body">Walk with W A S D or the arrow keys. Hold the RIGHT mouse button and drag to look. In a headset, use the thumbstick. Stroll left and right to visit the shops on Main Street.</span>
+    </div>
+    <div id="step-3" class="step">
+      <span class="step-title">2. Talk to Gus</span>
+      <span class="step-body">Gus runs the cart and knows all about money. When a gold ! pops up over him, walk over. He will ask you a quick question to grow your Money Smarts.</span>
+    </div>
+    <div id="step-4" class="step">
+      <span class="step-title">3. Make Your Choices</span>
+      <span class="step-body">At each life stage you decide how much to spend, save, and invest. Every choice moves your meters, so take a moment to think it through.</span>
+    </div>
+    <div id="step-5" class="step">
+      <span class="step-title">4. Watch Your Meters</span>
+      <span class="step-body">Keep an eye on Financial Growth, Financial Security, and Money Smarts. Keeping all three high makes you a Balanced Builder. Ready?</span>
+    </div>
+  </div>
+
+  <span id="step-indicator" class="step-indicator">Step 1 of 5</span>
+
+  <div class="button-row">
+    <div id="back-button" class="back-button">
+      <span id="back-label" class="back-label">Back</span>
+    </div>
+    <div id="next-button" class="next-button">
+      <span id="next-label" class="next-label">Next</span>
+    </div>
+  </div>
+</div>

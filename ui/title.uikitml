@@ -1,0 +1,53 @@
+<!-- Title card for Money Moves. Compiled to public/ui/title.json. -->
+<style>
+  .panel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5;
+    width: 86;
+    background-color: #f3e9d2;
+    border-width: 1.5;
+    border-color: #1F3A5F;
+    border-radius: 5;
+  }
+  .title {
+    font-size: 9;
+    font-weight: bold;
+    color: #1F3A5F;
+    text-align: center;
+  }
+  .subtitle {
+    font-size: 3.6;
+    color: #8a6118;
+    text-align: center;
+    margin-top: 2;
+  }
+  .start-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6;
+    padding-top: 3;
+    padding-bottom: 3;
+    padding-left: 9;
+    padding-right: 9;
+    background-color: #c8962a;
+    border-radius: 4;
+    cursor: pointer;
+  }
+  .start-label {
+    font-size: 5.5;
+    font-weight: bold;
+    color: #1F3A5F;
+  }
+</style>
+
+<div class="panel-container">
+  <span class="title">Money Moves</span>
+  <span class="subtitle">Your Main Street Money Adventure</span>
+  <div id="start-button" class="start-button">
+    <span class="start-label">Start</span>
+  </div>
+</div>

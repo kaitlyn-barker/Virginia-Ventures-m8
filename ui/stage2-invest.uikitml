@@ -1,0 +1,46 @@
+<!-- Stage 2 invest board for Money Moves. Compiled to public/ui/stage2-invest.json. -->
+<style>
+  .panel { display: flex; flex-direction: column; align-items: center; padding: 5; width: 134; background-color: #f3e9d2; border-width: 1.5; border-color: #1F3A5F; border-radius: 5; }
+  .beat { display: flex; flex-direction: column; align-items: center; width: 124; }
+  .eyebrow { font-size: 3; font-weight: bold; color: #8a6118; text-align: center; letter-spacing: 2; }
+  .intro { font-size: 4; font-weight: bold; color: #1F3A5F; text-align: center; margin-top: 2; }
+  .plans { display: flex; flex-direction: column; align-items: center; width: 124; margin-top: 3; }
+  .plan { display: flex; flex-direction: column; align-items: center; width: 124; padding: 3.5; margin-top: 2; background-color: #fbf4e3; border-width: 1.3; border-color: #1F3A5F; border-radius: 3; cursor: pointer; }
+  .plan-name { font-size: 4; font-weight: bold; color: #1F3A5F; text-align: center; }
+  .plan-split { font-size: 3.2; color: #4a4a4a; text-align: center; margin-top: 1; }
+  .result-line { font-size: 3.6; color: #1F3A5F; text-align: center; margin-top: 2; }
+  .takeaway { font-size: 3.6; font-weight: bold; color: #2e6b2e; text-align: center; margin-top: 3; }
+  .continue-button { display: flex; align-items: center; justify-content: center; margin-top: 4; padding-top: 3; padding-bottom: 3; padding-left: 9; padding-right: 9; background-color: #c8962a; border-radius: 4; cursor: pointer; }
+  .continue-label { font-size: 4.4; font-weight: bold; color: #1F3A5F; }
+</style>
+
+<div class="panel">
+  <div id="beat-plan" class="beat">
+    <span class="eyebrow">INVEST YOUR PAYCHECK</span>
+    <span class="intro">You earned a $100 paycheck! How much do you want to invest? Investing might grow your money, but it is not a sure thing.</span>
+    <div class="plans">
+      <div id="card-safe" class="plan">
+        <span class="plan-name">Play It Safe</span>
+        <span class="plan-split">Invest $0. Save $100.</span>
+      </div>
+      <div id="card-some" class="plan">
+        <span class="plan-name">Invest Some</span>
+        <span class="plan-split">Invest $40. Save $60.</span>
+      </div>
+      <div id="card-lots" class="plan">
+        <span class="plan-name">Invest a Lot</span>
+        <span class="plan-split">Invest $80. Save $20.</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="beat-outcome" class="beat">
+    <span class="eyebrow">HOW IT WENT</span>
+    <span id="result-invest" class="result-line">...</span>
+    <span id="result-save" class="result-line">...</span>
+    <span id="result-takeaway" class="takeaway">...</span>
+    <div id="continue-button" class="continue-button">
+      <span class="continue-label">Continue</span>
+    </div>
+  </div>
+</div>

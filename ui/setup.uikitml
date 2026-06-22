@@ -1,0 +1,43 @@
+<!-- Character selection for Money Moves. Compiled to public/ui/setup.json. -->
+<style>
+  .panel { display: flex; flex-direction: column; align-items: center; padding: 5; width: 132; background-color: #f3e9d2; border-width: 1.5; border-color: #1F3A5F; border-radius: 5; }
+  .heading { font-size: 7; font-weight: bold; color: #1F3A5F; text-align: center; }
+  .instruction { font-size: 3.4; color: #1F3A5F; text-align: center; margin-top: 2; }
+  .grid { display: flex; flex-direction: column; align-items: center; margin-top: 3; }
+  .row { display: flex; flex-direction: row; justify-content: center; }
+  .card { display: flex; flex-direction: column; align-items: center; width: 56; padding: 4; margin-left: 1.5; margin-right: 1.5; margin-top: 1.5; background-color: #fbf4e3; border-width: 1.5; border-color: #1F3A5F; border-radius: 3; cursor: pointer; }
+  .card-name { font-size: 5; font-weight: bold; color: #1F3A5F; text-align: center; }
+  .card-vibe { font-size: 3; color: #4a4a4a; text-align: center; margin-top: 1.5; }
+  .begin-button { display: flex; align-items: center; justify-content: center; margin-top: 4; padding-top: 3; padding-bottom: 3; padding-left: 8; padding-right: 8; background-color: #c9c2b5; border-radius: 4; cursor: pointer; }
+  .begin-label { font-size: 5; font-weight: bold; color: #7a7a7a; }
+</style>
+
+<div class="panel">
+  <span class="heading">Choose Your Explorer</span>
+  <span class="instruction">Tap the character you want to be. There are no wrong picks!</span>
+  <div class="grid">
+    <div class="row">
+      <div id="card-ada" class="card">
+        <span class="card-name">Ada</span>
+        <span class="card-vibe">Loves a good plan.</span>
+      </div>
+      <div id="card-leo" class="card">
+        <span class="card-name">Leo</span>
+        <span class="card-vibe">Always up for an adventure.</span>
+      </div>
+    </div>
+    <div class="row">
+      <div id="card-mia" class="card">
+        <span class="card-name">Mia</span>
+        <span class="card-vibe">Careful and curious.</span>
+      </div>
+      <div id="card-sam" class="card">
+        <span class="card-name">Sam</span>
+        <span class="card-vibe">Friendly and fair.</span>
+      </div>
+    </div>
+  </div>
+  <div id="begin-button" class="begin-button">
+    <span id="begin-label" class="begin-label">Begin</span>
+  </div>
+</div>
