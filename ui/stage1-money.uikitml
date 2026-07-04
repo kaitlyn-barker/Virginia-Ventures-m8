@@ -17,6 +17,16 @@
 </style>
 
 <div id="game-panel" class="panel">
+  <div id="beat-special" class="beat">
+    <span id="special-eyebrow" class="eyebrow">MARKET TWIST</span>
+    <span id="special-q" class="q-text">...</span>
+    <div class="answers">
+      <div id="special-opt0" class="answer"><span id="special-opt0-label" class="answer-label">...</span></div>
+      <div id="special-opt1" class="answer"><span id="special-opt1-label" class="answer-label">...</span></div>
+      <div id="special-opt2" class="answer"><span id="special-opt2-label" class="answer-label">...</span></div>
+    </div>
+  </div>
+
   <div id="beat-supply" class="beat">
     <span class="eyebrow">SPEND TO GROW</span>
     <span id="supply-q" class="q-text">You have $150 to run the shop. You can afford ONE growth move today, not both.</span>

@@ -47,9 +47,9 @@
   .play-again-button { display: flex; align-items: center; justify-content: center; margin-top: 3; padding-top: 2.6; padding-bottom: 2.6; padding-left: 9; padding-right: 9; background-color: #c8962a; border-radius: 4; cursor: pointer; }
   .play-again-label { font-size: 4; font-weight: bold; color: #1F3A5F; word-break: keep-all; }
 
-  .recap-line { font-size: 3; color: #1F3A5F; text-align: center; margin-top: 1; }
-  .think-title { font-size: 2.8; font-weight: bold; color: #8a6118; letter-spacing: 1.5; text-align: center; margin-top: 3.5; }
-  .think-line { font-size: 3; color: #1F3A5F; text-align: center; margin-top: 1; }
+  .recap-line { font-size: 2.7; color: #1F3A5F; text-align: center; margin-top: 0.7; }
+  .think-title { font-size: 2.7; font-weight: bold; color: #8a6118; letter-spacing: 1.5; text-align: center; margin-top: 2.5; }
+  .think-line { font-size: 2.7; color: #1F3A5F; text-align: center; margin-top: 0.7; }
 </style>
 
 <div id="report-card" class="panel">
@@ -124,6 +124,10 @@
     <span id="recap-line-7" class="recap-line"></span>
     <span id="recap-line-8" class="recap-line"></span>
     <span id="recap-line-9" class="recap-line"></span>
+    <span id="recap-line-10" class="recap-line"></span>
+    <span id="recap-line-11" class="recap-line"></span>
+    <span id="recap-line-12" class="recap-line"></span>
+    <span id="recap-line-13" class="recap-line"></span>
 
     <span class="think-title">THINK ABOUT...</span>
     <span id="think-line-0" class="think-line"></span>

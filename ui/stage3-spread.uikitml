@@ -15,6 +15,16 @@
 </style>
 
 <div id="game-panel" class="panel">
+  <div id="beat-capacity" class="beat">
+    <span id="capacity-eyebrow" class="eyebrow">A HUGE ORDER</span>
+    <span id="capacity-q" class="q-text">...</span>
+    <div class="answers">
+      <div id="capacity-opt0" class="answer"><span id="capacity-opt0-label" class="answer-label">...</span></div>
+      <div id="capacity-opt1" class="answer"><span id="capacity-opt1-label" class="answer-label">...</span></div>
+      <div id="capacity-opt2" class="answer"><span id="capacity-opt2-label" class="answer-label">...</span></div>
+    </div>
+  </div>
+
   <div id="beat-stock" class="beat">
     <span class="eyebrow">CLOSING TIME</span>
     <span id="close-q" class="q-text">It is closing time, and you have unsold loaves and pastries left. What do you do?</span>

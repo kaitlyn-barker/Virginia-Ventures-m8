@@ -14,6 +14,7 @@
   .fill-sat { background-color: #d76f4f; }
   .fill-profit { background-color: #5fae4a; }
   .fill-instinct { background-color: #4a8fd6; }
+  .clock { font-size: 2.5; font-weight: bold; color: #8a6118; text-align: center; letter-spacing: 1; margin-top: 0.5; margin-bottom: 1; }
   .obj { margin-top: 3.5; padding-top: 1.6; padding-bottom: 1.6; padding-left: 2; padding-right: 2; background-color: #c8962a; border-radius: 2.2; }
   .objtext { font-size: 2.7; font-weight: bold; color: #ffffff; text-align: center; }
 </style>
@@ -23,6 +24,8 @@
     <span id="dash-title" class="topname">Boss for a Day</span>
     <span id="dash-money" class="money">$50</span>
   </div>
+
+  <span id="dash-clock" class="clock">MORNING</span>
 
   <div class="meter">
     <div class="meterhead">

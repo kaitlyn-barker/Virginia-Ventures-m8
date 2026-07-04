@@ -26,7 +26,7 @@ import {
 } from "@iwsdk/core";
 
 import { buildBaseWorld, buildShopProps, setStageLook, GUS_SPOT, STATIONS } from "./environment";
-import { setActiveShop, activeShop, SHOPS, ShopId, ShopPack, ECONOMY } from "./shops";
+import { setActiveShop, activeShop, SHOPS, ShopId, ShopPack, ChoiceOption, ShopDecision, ECONOMY } from "./shops";
 import { sfxStage, sfxClick, sfxCoin, sfxDown, sfxFanfare } from "./sfx";
 
 // ============================================================================
@@ -54,6 +54,52 @@ type Decision = { title: string; choice: string; feedback: string; score: number
 let dayDecisions: Decision[] = [];
 function recordDecision(title: string, choice: string, feedback: string, score: number) {
   dayDecisions.push({ title, choice, feedback, score });
+}
+
+// Apply one option from a generic three-option ShopDecision (the Phase 4 beats):
+// nudge the meters, move the register, and log the choice for the report.
+function applyDecisionOption(opt: ChoiceOption, title: string) {
+  if (opt.sat) updateScore("satisfaction", opt.sat);
+  if (opt.profit) updateScore("profit", opt.profit);
+  if (opt.instinct) updateScore("instinct", opt.instinct);
+  if (opt.cash > 0) earn(opt.cash);
+  else if (opt.cash < 0) spend(-opt.cash);
+  else sfxClick();
+  recordDecision(title, opt.label, opt.fb, opt.sat + opt.profit + opt.instinct);
+}
+
+// Wire a generic three-option beat: buttons prefix-opt0/1/2 fire the matching
+// option, then onPicked advances the stage. getDecision is read at click time so
+// the live shop's options drive the effects. First tap wins.
+function wireDecisionBeat(
+  doc: any,
+  prefix: string,
+  getDecision: () => ShopDecision,
+  title: string,
+  onPicked: () => void,
+) {
+  let picked = false;
+  for (let i = 0; i < 3; i = i + 1) {
+    const idx = i;
+    doc.getElementById(prefix + "-opt" + idx)?.setProperties({
+      onClick: function () {
+        if (picked) return;
+        picked = true;
+        applyDecisionOption(getDecision().options[idx], title);
+        onPicked();
+      },
+    });
+  }
+}
+
+// Push a ShopDecision's words (eyebrow, question, three option labels) into its
+// beat. Called from applyShopWords so each beat shows the chosen shop's wording.
+function applyDecisionWords(doc: any, prefix: string, dec: ShopDecision) {
+  doc.getElementById(prefix + "-eyebrow")?.setProperties({ text: dec.eyebrow });
+  doc.getElementById(prefix + "-q")?.setProperties({ text: dec.q });
+  for (let i = 0; i < 3; i = i + 1) {
+    doc.getElementById(prefix + "-opt" + i + "-label")?.setProperties({ text: dec.options[i].label });
+  }
 }
 
 // ============================================================================
@@ -115,6 +161,49 @@ let hudInstinctFill: HTMLElement | null = null;
 let hudStageChip: HTMLElement | null = null;
 let hudObjective: HTMLElement | null = null;
 let hudPanel: HTMLElement | null = null;
+
+// The in-day clock: Morning ▸ Midday ▸ Afternoon ▸ Closing, so the student feels
+// the day's arc. Past parts go green, the current one gold, the rest are muted.
+// The same active index feeds the in-VR dashboard's clock line.
+let hudClockSegs: HTMLElement[] = [];
+let stageClockIndex = -1;
+const CLOCK_LABELS = ["Morning", "Midday", "Afternoon", "Closing"];
+
+function buildClockRow(): HTMLElement {
+  const row = document.createElement("div");
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "4px";
+  row.style.margin = "0 0 9px";
+  hudClockSegs = [];
+  for (let i = 0; i < CLOCK_LABELS.length; i = i + 1) {
+    if (i > 0) {
+      const sep = document.createElement("span");
+      sep.textContent = "▸";
+      sep.style.color = "#c3b790";
+      sep.style.fontSize = "10px";
+      row.appendChild(sep);
+    }
+    const seg = document.createElement("span");
+    seg.textContent = CLOCK_LABELS[i];
+    seg.style.fontSize = "11px";
+    seg.style.fontWeight = "700";
+    seg.style.color = "#c3b790";
+    seg.style.transition = "color 0.2s ease";
+    hudClockSegs.push(seg);
+    row.appendChild(seg);
+  }
+  return row;
+}
+
+function updateHudClock(activeIndex: number) {
+  for (let i = 0; i < hudClockSegs.length; i = i + 1) {
+    const seg = hudClockSegs[i];
+    if (i === activeIndex) { seg.style.color = TEXT_GOLD; seg.style.fontWeight = "800"; }
+    else if (i < activeIndex) { seg.style.color = TEXT_GREEN; seg.style.fontWeight = "700"; }
+    else { seg.style.color = "#c3b790"; seg.style.fontWeight = "700"; }
+  }
+}
 
 function makeHudMeter(label: string, barColor: string, textColor: string) {
   const row = document.createElement("div");
@@ -300,6 +389,8 @@ function createHUD() {
   header.appendChild(hudStageChip);
   hud.appendChild(header);
 
+  hud.appendChild(buildClockRow());
+
   const moneyRow = buildMoneyRow();
   hud.appendChild(moneyRow);
 
@@ -356,6 +447,7 @@ let _lastProf = -1;
 let _lastInst = -1;
 let _lastMoney = -1;
 let _lastObjective = "";
+let _lastClock = -2; // -1 is a real state (pre-shop), so seed outside its range
 
 function refreshVrDashboard() {
   if (!dashboardDoc) return;
@@ -393,6 +485,17 @@ function refreshVrDashboard() {
     if (m) m.setProperties({ text: "$" + currentMoney });
   }
 
+  if (stageClockIndex !== _lastClock) {
+    _lastClock = stageClockIndex;
+    const c = dashboardDoc.getElementById("dash-clock");
+    if (c) {
+      const text = stageClockIndex >= 0
+        ? "PART " + (stageClockIndex + 1) + " OF 4  ·  " + CLOCK_LABELS[stageClockIndex].toUpperCase()
+        : "";
+      c.setProperties({ text: text });
+    }
+  }
+
   const obj =
     hudObjective && hudObjective.textContent
       ? hudObjective.textContent
@@ -420,15 +523,17 @@ function setObjective(text: string) {
   console.log("[OBJECTIVE] " + text);
 }
 
-// Update the little stage label in the HUD header for each phase.
+// Update the stage chip AND the in-day clock (desktop + VR) for each phase.
 function setHudStage(phase: string) {
-  if (!hudStageChip) return;
   let label = "Pick a Shop";
-  if (phase === PHASE_MORNING) label = "Morning";
-  else if (phase === PHASE_MIDDAY) label = "Midday";
-  else if (phase === PHASE_AFTERNOON) label = "Afternoon";
-  else if (phase === PHASE_CLOSE) label = "Daily Report";
-  hudStageChip.textContent = label;
+  let idx = -1;
+  if (phase === PHASE_MORNING) { label = "Morning"; idx = 0; }
+  else if (phase === PHASE_MIDDAY) { label = "Midday"; idx = 1; }
+  else if (phase === PHASE_AFTERNOON) { label = "Afternoon"; idx = 2; }
+  else if (phase === PHASE_CLOSE) { label = "Closing"; idx = 3; }
+  if (hudStageChip) hudStageChip.textContent = label;
+  stageClockIndex = idx;
+  updateHudClock(idx);
 }
 
 // ============================================================================
@@ -1252,6 +1357,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let stage1ShowingOutcome = false; // true while the result is on screen
 
   whenPanelReady(stage1MoneyPanel, function (doc) {
+    const beatSpecial = doc.getElementById("beat-special");
     const beatSupply = doc.getElementById("beat-supply");
     const beatPrice = doc.getElementById("beat-price");
     const beatStock = doc.getElementById("beat-stock");
@@ -1262,8 +1368,16 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     const supplyNote = doc.getElementById("supply-note");
     const supplyNext = doc.getElementById("supply-next");
 
-    // The morning opens on the scarcity decision, then pricing, then stocking.
-    beatSupply?.setProperties({ display: "flex" });
+    // The morning opens on this shop's own market twist, then the growth call.
+    wireDecisionBeat(doc, "special", function () { return activeShop.special; }, "Market twist", function () {
+      beatSpecial?.setProperties({ display: "none" });
+      beatSupply?.setProperties({ display: "flex" });
+    });
+
+    // The morning opens on the market twist, then the scarcity decision, then
+    // pricing, then stocking.
+    beatSpecial?.setProperties({ display: "flex" });
+    beatSupply?.setProperties({ display: "none" });
     beatPrice?.setProperties({ display: "none" });
     beatStock?.setProperties({ display: "none" });
     beatReady?.setProperties({ display: "none" });
@@ -1470,13 +1584,21 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let stage2ShowingOutcome = false;
 
   whenPanelReady(stage2Panel, function (doc) {
+    const beatDelay = doc.getElementById("beat-delay");
     const beatRival = doc.getElementById("beat-rival");
     const beatComplaint = doc.getElementById("beat-complaint");
     const beatDone = doc.getElementById("beat-done");
     const doneText = doc.getElementById("done-text");
     const revenueLine = doc.getElementById("revenue-line");
 
-    beatRival?.setProperties({ display: "flex" });
+    // The rush opens with a supplier delay curveball, then the rival, then the complaint.
+    wireDecisionBeat(doc, "delay", function () { return activeShop.midday.delay; }, "Supplier delay", function () {
+      beatDelay?.setProperties({ display: "none" });
+      beatRival?.setProperties({ display: "flex" });
+    });
+
+    beatDelay?.setProperties({ display: "flex" });
+    beatRival?.setProperties({ display: "none" });
     beatComplaint?.setProperties({ display: "none" });
     beatDone?.setProperties({ display: "none" });
     revenueLine?.setProperties({ display: "none" });
@@ -1631,12 +1753,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let stage3Engaged = false; // true from the first close-out call until See Your Day
 
   whenPanelReady(stage3Panel, function (doc) {
+    const beatCapacity = doc.getElementById("beat-capacity");
     const beatStock = doc.getElementById("beat-stock");
     const beatOrder = doc.getElementById("beat-order");
     const beatDone = doc.getElementById("beat-done");
     const doneText = doc.getElementById("done-text");
 
-    beatStock?.setProperties({ display: "flex" });
+    // The afternoon opens with the big-order capacity call, then leftovers, then
+    // the weekly-order price. The first pick counts as engaging the panel.
+    wireDecisionBeat(doc, "capacity", function () { return activeShop.afternoon.capacity; }, "The big order", function () {
+      stage3Engaged = true;
+      beatCapacity?.setProperties({ display: "none" });
+      beatStock?.setProperties({ display: "flex" });
+    });
+
+    beatCapacity?.setProperties({ display: "flex" });
+    beatStock?.setProperties({ display: "none" });
     beatOrder?.setProperties({ display: "none" });
     beatDone?.setProperties({ display: "none" });
 
@@ -1961,7 +2093,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       reportDoc.getElementById("report-try")?.setProperties({ text: worst ? worst.feedback : "Try a different shop and see what changes." });
 
       // Recap page: one line per decision, hiding the unused slots.
-      for (let i = 0; i < 10; i = i + 1) {
+      for (let i = 0; i < 14; i = i + 1) {
         const el = reportDoc.getElementById("recap-line-" + i);
         if (!el) continue;
         if (i < dayDecisions.length) {
@@ -2125,6 +2257,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     whenPanelReady(stage1MoneyPanel, function (doc) {
       const q = pack.morning;
+      applyDecisionWords(doc, "special", pack.special);
       doc.getElementById("supply-q")?.setProperties({ text: pack.economy.oppQ });
       doc.getElementById("supply-deal-label")?.setProperties({ text: pack.economy.oppDealLabel });
       doc.getElementById("supply-flyer-label")?.setProperties({ text: pack.economy.oppFlyerLabel });
@@ -2140,6 +2273,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     whenPanelReady(stage2Panel, function (doc) {
       const q = pack.midday;
+      applyDecisionWords(doc, "delay", q.delay);
       doc.getElementById("rival-q")?.setProperties({ text: q.rivalQ });
       doc.getElementById("rival-hold-label")?.setProperties({ text: q.rivalHold });
       doc.getElementById("rival-match-label")?.setProperties({ text: q.rivalMatch });
@@ -2152,6 +2286,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     whenPanelReady(stage3Panel, function (doc) {
       const q = pack.afternoon;
+      applyDecisionWords(doc, "capacity", q.capacity);
       doc.getElementById("close-q")?.setProperties({ text: q.leftoverQ });
       doc.getElementById("close-donate-label")?.setProperties({ text: q.leftDonate });
       doc.getElementById("close-markdown-label")?.setProperties({ text: q.leftMarkdown });
@@ -2218,10 +2353,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // Morning activity panel: the growth decision, pricing, and stocking.
     whenPanelReady(stage1MoneyPanel, function (doc) {
       doc.getElementById("game-panel")?.setProperties({ backgroundColor: t.panelBg, borderColor: t.panelBorder });
-      for (const aid of ["supply-deal", "supply-flyer", "price-premium", "price-fair", "price-bargain", "stock-fancy", "stock-mix", "stock-bulk"]) {
+      for (const aid of ["special-opt0", "special-opt1", "special-opt2", "supply-deal", "supply-flyer", "price-premium", "price-fair", "price-bargain", "stock-fancy", "stock-mix", "stock-bulk"]) {
         doc.getElementById(aid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder });
       }
-      for (const tid of ["supply-q", "supply-deal-label", "supply-flyer-label", "price-q", "stock-q", "price-premium-label", "price-fair-label", "price-bargain-label", "stock-fancy-label", "stock-mix-label", "stock-bulk-label", "ready-text"]) {
+      for (const tid of ["special-q", "special-opt0-label", "special-opt1-label", "special-opt2-label", "supply-q", "supply-deal-label", "supply-flyer-label", "price-q", "stock-q", "price-premium-label", "price-fair-label", "price-bargain-label", "stock-fancy-label", "stock-mix-label", "stock-bulk-label", "ready-text"]) {
         doc.getElementById(tid)?.setProperties({ color: t.ink });
       }
     });
@@ -2229,10 +2364,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // Midday activity panel: rival and complaint.
     whenPanelReady(stage2Panel, function (doc) {
       doc.getElementById("game-panel")?.setProperties({ backgroundColor: t.panelBg, borderColor: t.panelBorder });
-      for (const aid of ["rival-hold", "rival-match", "rival-ignore", "comp-free", "comp-discount", "comp-firm"]) {
+      for (const aid of ["delay-opt0", "delay-opt1", "delay-opt2", "rival-hold", "rival-match", "rival-ignore", "comp-free", "comp-discount", "comp-firm"]) {
         doc.getElementById(aid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder });
       }
-      for (const tid of ["rival-q", "comp-q", "rival-hold-label", "rival-match-label", "rival-ignore-label", "comp-free-label", "comp-discount-label", "comp-firm-label", "done-text"]) {
+      for (const tid of ["delay-q", "delay-opt0-label", "delay-opt1-label", "delay-opt2-label", "rival-q", "comp-q", "rival-hold-label", "rival-match-label", "rival-ignore-label", "comp-free-label", "comp-discount-label", "comp-firm-label", "done-text"]) {
         doc.getElementById(tid)?.setProperties({ color: t.ink });
       }
     });
@@ -2240,10 +2375,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // Afternoon activity panel: leftovers and the big order.
     whenPanelReady(stage3Panel, function (doc) {
       doc.getElementById("game-panel")?.setProperties({ backgroundColor: t.panelBg, borderColor: t.panelBorder });
-      for (const aid of ["close-donate", "close-markdown", "close-toss", "order-premium", "order-fair", "order-friendly"]) {
+      for (const aid of ["capacity-opt0", "capacity-opt1", "capacity-opt2", "close-donate", "close-markdown", "close-toss", "order-premium", "order-fair", "order-friendly"]) {
         doc.getElementById(aid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder });
       }
-      for (const tid of ["close-q", "order-q", "close-donate-label", "close-markdown-label", "close-toss-label", "order-premium-label", "order-fair-label", "order-friendly-label", "done-text"]) {
+      for (const tid of ["capacity-q", "capacity-opt0-label", "capacity-opt1-label", "capacity-opt2-label", "close-q", "order-q", "close-donate-label", "close-markdown-label", "close-toss-label", "order-premium-label", "order-fair-label", "order-friendly-label", "done-text"]) {
         doc.getElementById(tid)?.setProperties({ color: t.ink });
       }
     });

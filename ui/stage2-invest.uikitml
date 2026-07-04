@@ -16,6 +16,16 @@
 </style>
 
 <div id="game-panel" class="panel">
+  <div id="beat-delay" class="beat">
+    <span id="delay-eyebrow" class="eyebrow">A DELIVERY FAILS</span>
+    <span id="delay-q" class="q-text">...</span>
+    <div class="answers">
+      <div id="delay-opt0" class="answer"><span id="delay-opt0-label" class="answer-label">...</span></div>
+      <div id="delay-opt1" class="answer"><span id="delay-opt1-label" class="answer-label">...</span></div>
+      <div id="delay-opt2" class="answer"><span id="delay-opt2-label" class="answer-label">...</span></div>
+    </div>
+  </div>
+
   <div id="beat-rival" class="beat">
     <span class="eyebrow">A RIVAL'S DEAL</span>
     <span id="rival-q" class="q-text">A bakery down Cary Street just started a buy-one-get-one sale. What is your move?</span>

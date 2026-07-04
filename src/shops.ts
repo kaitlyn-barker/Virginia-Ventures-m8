@@ -10,6 +10,26 @@
 
 export type ShopId = "bakery" | "surf" | "repair";
 
+// A generic three-option decision used by the Phase 4 beats: the midday supplier
+// delay, the afternoon big-order capacity call, and each shop's unique twist.
+// Each option carries its own meter nudges, cash effect, and feedback, so the
+// whole decision — mechanic and words — lives in the shop pack. cash is dollars
+// in (positive) or out (negative); best marks the strongest choice.
+export interface ChoiceOption {
+  label: string;
+  fb: string;
+  sat: number;
+  profit: number;
+  instinct: number;
+  cash: number;
+  best: boolean;
+}
+export interface ShopDecision {
+  eyebrow: string;
+  q: string;
+  options: ChoiceOption[]; // exactly three
+}
+
 export interface ShopPack {
   id: ShopId;
   shopName: string;        // on the storefront sign and in the greeting
@@ -61,6 +81,7 @@ export interface ShopPack {
     compQ: string; compFree: string; compDiscount: string; compFirm: string;
     rivalFbHold: string; rivalFbMatch: string; rivalFbIgnore: string;
     compFbFree: string; compFbDiscount: string; compFbFirm: string;
+    delay: ShopDecision; // Phase 4: a supplier delivery fails mid-rush
     doneText: string;
   };
 
@@ -71,8 +92,13 @@ export interface ShopPack {
     orderQ: string; orderP: string; orderF: string; orderFriendly: string;
     leftFbDonate: string; leftFbMarkdown: string; leftFbToss: string;
     orderFbP: string; orderFbF: string; orderFbFriendly: string;
+    capacity: ShopDecision; // Phase 4: the big order vs. your walk-in customers
     doneText: string;
   };
+
+  // Phase 4: one twist unique to this shop's market (perishable stock for the
+  // bakery, weather for the surf shop, the fast-cheap-good triangle for repair).
+  special: ShopDecision;
 
   // The MONEY side of the day. The dollar amounts themselves are shared and live
   // in ECONOMY (below), so the whole game balances from one place. What lives here
@@ -207,6 +233,15 @@ const BAKERY: ShopPack = {
     compFbFree: "A free, fresh loaf costs a little now but turns an upset customer into a fan. Worth it.",
     compFbDiscount: "A markdown (lower price) on their next visit is fair and brings them back, but it does less to fix today's letdown.",
     compFbFirm: "'All sales are final' saves one loaf but loses a customer, and they will tell their friends.",
+    delay: {
+      eyebrow: "A DELIVERY FAILS",
+      q: "Right in the rush, your flour delivery never shows up. You are running low. What do you do?",
+      options: [
+        { label: "Bake with what is on hand", fb: "Making do keeps the doors open, but the last-minute swap costs a little and regulars may notice the change.", sat: -2, profit: 0, instinct: 4, cash: -12, best: false },
+        { label: "Tell customers, offer another treat", fb: "An honest heads-up and a good alternative keeps trust high. Customers respect a straight answer.", sat: 8, profit: 0, instinct: 8, cash: 0, best: true },
+        { label: "Say nothing and hope", fb: "Hiding it works until you run out mid-order. Then the letdown is far worse than the truth would have been.", sat: -10, profit: 2, instinct: -4, cash: 0, best: false },
+      ],
+    },
     doneText: "The lunch rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -233,6 +268,15 @@ const BAKERY: ShopPack = {
     orderFbP: "A premium price on a weekly order earns the most, but the cafe may shop around for a better deal.",
     orderFbF: "A fair price on a standing order (the same order every week) is steady money you can count on. A smart bet.",
     orderFbFriendly: "A friendly, low rate keeps the cafe loyal for years, but you leave a little money on the table each week.",
+    capacity: {
+      eyebrow: "A HUGE ORDER",
+      q: "A caterer wants 200 cupcakes by 3pm — big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
+      options: [
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+      ],
+    },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {
@@ -243,6 +287,15 @@ const BAKERY: ShopPack = {
     oppFlyerNote: "Opportunity cost: the flyer means skipping the deal. You traded lower supply costs for a bigger crowd.",
     lunchRushLabel: "The lunch rush brought in",
     afternoonRushLabel: "The afternoon crowd brought in",
+  },
+  special: {
+    eyebrow: "PERISHABLE STOCK",
+    q: "Before you open: yesterday's unsold loaves are still good, but bread does not keep. What do you do with them?",
+    options: [
+      { label: "Sell them cheap up front", fb: "Selling day-old bread cheap clears it before it spoils and brings in a little cash. Perishable goods do not wait!", sat: 2, profit: 2, instinct: 6, cash: 18, best: true },
+      { label: "Mix them in at full price", fb: "Passing day-old bread off as fresh saves nothing if customers notice. Trust is hard to win back.", sat: -8, profit: 4, instinct: 0, cash: 10, best: false },
+      { label: "Toss them for a fresh look", fb: "A fresh-only case looks great, but you threw away good bread and the cash it could have earned. Ouch.", sat: 4, profit: -4, instinct: 0, cash: 0, best: false },
+    ],
   },
 };
 
@@ -318,6 +371,15 @@ const SURF: ShopPack = {
     compFbFree: "A fresh board at no charge costs a little now but turns an upset customer into a fan. Worth it.",
     compFbDiscount: "A discount (lower price) on their next rental is fair and brings them back, but it does less to fix today's letdown.",
     compFbFirm: "'All rentals are final' saves one board but loses a customer, and they will tell their friends.",
+    delay: {
+      eyebrow: "A DELIVERY FAILS",
+      q: "Right in the rush, your wetsuit shipment never shows up. You are running low. What do you do?",
+      options: [
+        { label: "Rent out the older wetsuits", fb: "Making do keeps surfers in the water, but the worn suits cost you a little and regulars may notice the swap.", sat: -2, profit: 0, instinct: 4, cash: -12, best: false },
+        { label: "Tell surfers, offer a rash guard", fb: "An honest heads-up and a good alternative keeps trust high. Customers respect a straight answer.", sat: 8, profit: 0, instinct: 8, cash: 0, best: true },
+        { label: "Say nothing and hope", fb: "Hiding it works until you run out mid-rush. Then the letdown is far worse than the truth would have been.", sat: -10, profit: 2, instinct: -4, cash: 0, best: false },
+      ],
+    },
     doneText: "The boardwalk rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -344,6 +406,15 @@ const SURF: ShopPack = {
     orderFbP: "A premium price on a weekly rental earns the most, but the camp may shop around for a better deal.",
     orderFbF: "A fair price on a standing order (the same booking every week) is steady money you can count on. A smart bet.",
     orderFbFriendly: "A friendly, low rate keeps the camp loyal for years, but you leave a little money on the table each week.",
+    capacity: {
+      eyebrow: "A HUGE ORDER",
+      q: "A beach resort wants 30 boards and wetsuits set up for a big event by 3pm — big money, but it will eat your whole afternoon. Your walk-in surfers still need you. How much do you take on?",
+      options: [
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in surfers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+      ],
+    },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {
@@ -354,6 +425,15 @@ const SURF: ShopPack = {
     oppFlyerNote: "Opportunity cost: the banner means skipping the deal. You traded lower gear costs for a bigger crowd.",
     lunchRushLabel: "The boardwalk rush brought in",
     afternoonRushLabel: "The afternoon crowd brought in",
+  },
+  special: {
+    eyebrow: "WEATHER WATCH",
+    q: "The forecast is split: it could be a sunny beach day or a storm. You cannot control the weather, but you have to stock now. What do you do?",
+    options: [
+      { label: "Bet it all on sun", fb: "Stocking only boards and beach gear wins big if the sun comes out, but a storm leaves you stuck with gear no one wants. That is a real risk.", sat: 0, profit: 8, instinct: -2, cash: -10, best: false },
+      { label: "Hedge: stock for sun or storm", fb: "A mix of boards AND wetsuits and indoor gear covers you either way. When demand rides on something you cannot control, hedging beats betting it all. Smart.", sat: 6, profit: 4, instinct: 8, cash: -8, best: true },
+      { label: "Bet it all on storm", fb: "Stocking only wetsuits and rain gear wins if the storm hits, but a sunny day leaves you empty-handed for the beach crowd. Risky the other way.", sat: 0, profit: 2, instinct: -2, cash: -10, best: false },
+    ],
   },
 };
 
@@ -429,6 +509,15 @@ const REPAIR: ShopPack = {
     compFbFree: "A free re-fix costs a little now but turns an upset customer into a fan. Worth it.",
     compFbDiscount: "A discount (lower price) on their next repair is fair and brings them back, but it does less to fix today's letdown.",
     compFbFirm: "'All repairs are final' saves one job but loses a customer, and they will tell their friends.",
+    delay: {
+      eyebrow: "A DELIVERY FAILS",
+      q: "Right in the rush, your screen parts shipment never shows up. You are running low. What do you do?",
+      options: [
+        { label: "Use a lower-grade part", fb: "Making do keeps repairs moving, but the off-brand part costs a little and customers may notice the difference.", sat: -2, profit: 0, instinct: 4, cash: -12, best: false },
+        { label: "Tell customers, offer a loaner", fb: "An honest heads-up and a good alternative keeps trust high. Customers respect a straight answer.", sat: 8, profit: 0, instinct: 8, cash: 0, best: true },
+        { label: "Say nothing and hope", fb: "Hiding it works until you run out mid-repair. Then the letdown is far worse than the truth would have been.", sat: -10, profit: 2, instinct: -4, cash: 0, best: false },
+      ],
+    },
     doneText: "The midday rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -455,6 +544,15 @@ const REPAIR: ShopPack = {
     orderFbP: "A premium price on a weekly batch earns the most, but the company may shop around for a better deal.",
     orderFbF: "A fair price on a standing order (the same batch every week) is steady money you can count on. A smart bet.",
     orderFbFriendly: "A friendly, low rate keeps the company loyal for years, but you leave a little money on the table each week.",
+    capacity: {
+      eyebrow: "A HUGE ORDER",
+      q: "An office wants 40 laptops fixed by 3pm — big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
+      options: [
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+      ],
+    },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {
@@ -465,6 +563,15 @@ const REPAIR: ShopPack = {
     oppFlyerNote: "Opportunity cost: the flyer means skipping the deal. You traded lower parts costs for more customers.",
     lunchRushLabel: "The midday walk-ins brought in",
     afternoonRushLabel: "The afternoon jobs brought in",
+  },
+  special: {
+    eyebrow: "FAST, CHEAP, GOOD",
+    q: "A customer wants a rush repair that is fast, cheap, AND perfect. You can only promise two of the three. Which two do you pick?",
+    options: [
+      { label: "Fast and good, not cheap", fb: "A speedy, top-quality fix makes the customer happy, but doing it right and fast costs you. You cannot also make it cheap.", sat: 6, profit: 4, instinct: 8, cash: 0, best: true },
+      { label: "Fast and cheap, not good", fb: "Rushing a cut-rate job gets it out the door, but the quality slips and it may come back broken. Cheap and fast rarely means good.", sat: -8, profit: 2, instinct: 0, cash: 5, best: false },
+      { label: "Cheap and good, not fast", fb: "A great fix at a fair price is a win, but the customer has to wait. You cannot also make it fast. Pick the two that matter most.", sat: 2, profit: -2, instinct: 2, cash: 0, best: false },
+    ],
   },
 };
 
