@@ -46,6 +46,16 @@ let stockTier = "";     // "fancy" | "mix" | "bulk" — set in the morning
 let flyerChosen = false; // true if the ad flyer growth move was bought
 let dealChosen = false;  // true if the bulk-supply deal growth move was bought
 
+// Every choice the student makes is logged here as it happens, so the daily
+// report can recap the day, name the best call and the one to rethink, and hand
+// the whole run to a teacher (localStorage / clipboard / postMessage). score is
+// the choice's net effect on the meters — higher is a better call.
+type Decision = { title: string; choice: string; feedback: string; score: number };
+let dayDecisions: Decision[] = [];
+function recordDecision(title: string, choice: string, feedback: string, score: number) {
+  dayDecisions.push({ title, choice, feedback, score });
+}
+
 // ============================================================================
 // HOUSE PALETTE  (the Market Harvest colonial parchment look)
 // Bright values are for graphics (bars). The TEXT_ values are darker,
@@ -552,6 +562,7 @@ function startDay() {
   stockTier = "";
   flyerChosen = false;
   dealChosen = false;
+  dayDecisions = [];
   setMoney(dayStartCash);
 }
 
@@ -1140,7 +1151,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // Wire a shuffled owner question's three answer buttons and its reply beat.
   // getOrder reads the live order so button A/B/C map to whatever option landed
   // there this playthrough; each answer shows its OWN feedback and its own score.
-  function wireGusAnswers(doc: any, getOrder: () => GusOpt[], setReplying: (v: boolean) => void) {
+  function wireGusAnswers(doc: any, title: string, getOrder: () => GusOpt[], setReplying: (v: boolean) => void) {
     const beatQ = doc.getElementById("beat-q");
     const beatReply = doc.getElementById("beat-reply");
     const replyText = doc.getElementById("reply-text");
@@ -1156,6 +1167,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       const opener = opt.isBest ? "Exactly right!" : "Good try.";
       replyText?.setProperties({ text: opener + " " + opt.fb });
       meterChange?.setProperties({ text: "Owner's Instinct  +" + opt.score });
+      recordDecision(title, opt.isBest ? "Chose the best answer" : "Missed the best answer", opt.fb, opt.score);
       beatQ?.setProperties({ display: "none" });
       beatReply?.setProperties({ display: "flex" });
       setReplying(true);
@@ -1176,7 +1188,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ1Replying = false; // true while the reply is on screen (keep it up)
 
   whenPanelReady(gusQ1Panel, function (doc) {
-    wireGusAnswers(doc, function () { return gus1Order; }, function (v) { gusQ1Replying = v; });
+    wireGusAnswers(doc, "Morning advice", function () { return gus1Order; }, function (v) { gusQ1Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1288,6 +1300,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         totals.satisfaction += 6;
         supplyNote?.setProperties({ text: activeShop.economy.oppFlyerNote });
       }
+      const note = kind === "deal" ? activeShop.economy.oppDealNote : activeShop.economy.oppFlyerNote;
+      recordDecision("Morning growth move", kind === "deal" ? "Took the bulk deal" : "Bought the ad flyer", note, 6);
       supplyAnswers?.setProperties({ display: "none" });
       supplyNote?.setProperties({ display: "flex" });
       supplyNext?.setProperties({ display: "flex" });
@@ -1311,6 +1325,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       priceTier = tier;
       pricePickFb = fb;
       applyMeters(d);
+      recordDecision("Morning prices", tier === "premium" ? "Premium prices" : tier === "bargain" ? "Bargain prices" : "Fair prices", fb, d.profit + d.satisfaction);
       sfxClick();
       beatPrice?.setProperties({ display: "none" });
       beatStock?.setProperties({ display: "flex" });
@@ -1327,6 +1342,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       stockTier = tier;
       spend(cost);
       applyMeters(d);
+      recordDecision("Morning stock", tier === "fancy" ? "High-end stock" : tier === "bulk" ? "Bulk stock" : "Balanced mix", fb, d.profit + d.satisfaction);
       const lunch = computeRush(ECONOMY.lunchRushBase);
       earn(lunch);
       readyText?.setProperties({ text: activeShop.morning.readyText });
@@ -1399,7 +1415,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ2Replying = false;
 
   whenPanelReady(gusQ2Panel, function (doc) {
-    wireGusAnswers(doc, function () { return gus2Order; }, function (v) { gusQ2Replying = v; });
+    wireGusAnswers(doc, "Midday advice", function () { return gus2Order; }, function (v) { gusQ2Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1472,7 +1488,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // Holding steady with a thank-you treat costs a little cash; matching or
     // ignoring the rival costs nothing now (matching shows up in weaker sales).
     let rivalPickFb = "";
-    function pickRival(cost: number, fb: string, d: { instinct: number; profit: number }) {
+    function pickRival(cost: number, fb: string, name: string, d: { instinct: number; profit: number }) {
       if (rivalPicked) return;
       rivalPicked = true;
       rivalPickFb = fb;
@@ -1482,16 +1498,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.profit += d.profit;
       if (cost > 0) spend(cost);
       else sfxClick();
+      recordDecision("Rival's deal", name, fb, d.instinct + d.profit);
       beatRival?.setProperties({ display: "none" });
       beatComplaint?.setProperties({ display: "flex" });
     }
-    doc.getElementById("rival-hold")?.setProperties({ onClick: function () { pickRival(ECONOMY.rivalPromoCost, activeShop.midday.rivalFbHold, MIDDAY.RIVAL_HOLD); } });
-    doc.getElementById("rival-match")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbMatch, MIDDAY.RIVAL_MATCH); } });
-    doc.getElementById("rival-ignore")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbIgnore, MIDDAY.RIVAL_IGNORE); } });
+    doc.getElementById("rival-hold")?.setProperties({ onClick: function () { pickRival(ECONOMY.rivalPromoCost, activeShop.midday.rivalFbHold, "Held steady", MIDDAY.RIVAL_HOLD); } });
+    doc.getElementById("rival-match")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbMatch, "Matched their deal", MIDDAY.RIVAL_MATCH); } });
+    doc.getElementById("rival-ignore")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbIgnore, "Ignored the rival", MIDDAY.RIVAL_IGNORE); } });
 
     // A no-charge replacement costs real cash now; the afternoon crowd then rolls
     // in with the day's second sales tick, sized by the morning's price + stock.
-    function pickComplaint(cost: number, fb: string, d: { satisfaction: number; profit: number }) {
+    function pickComplaint(cost: number, fb: string, name: string, d: { satisfaction: number; profit: number }) {
       if (complaintPicked) return;
       complaintPicked = true;
       updateScore("satisfaction", d.satisfaction);
@@ -1500,6 +1517,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.profit += d.profit;
       if (cost > 0) spend(cost);
       else sfxClick();
+      recordDecision("A complaint", name, fb, d.satisfaction + d.profit);
       const afternoon = computeRush(ECONOMY.afternoonBase);
       earn(afternoon);
       doneText?.setProperties({ text: activeShop.midday.doneText });
@@ -1511,9 +1529,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       beatDone?.setProperties({ display: "flex" });
       stage2ShowingOutcome = true;
     }
-    doc.getElementById("comp-free")?.setProperties({ onClick: function () { pickComplaint(ECONOMY.complaintFreeCost, activeShop.midday.compFbFree, MIDDAY.COMPLAINT_FREE); } });
-    doc.getElementById("comp-discount")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbDiscount, MIDDAY.COMPLAINT_DISCOUNT); } });
-    doc.getElementById("comp-firm")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbFirm, MIDDAY.COMPLAINT_FIRM); } });
+    doc.getElementById("comp-free")?.setProperties({ onClick: function () { pickComplaint(ECONOMY.complaintFreeCost, activeShop.midday.compFbFree, "Free replacement", MIDDAY.COMPLAINT_FREE); } });
+    doc.getElementById("comp-discount")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbDiscount, "Markdown next time", MIDDAY.COMPLAINT_DISCOUNT); } });
+    doc.getElementById("comp-firm")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbFirm, "Held firm", MIDDAY.COMPLAINT_FIRM); } });
 
     doc.getElementById("continue-button")?.setProperties({
       onClick: function () {
@@ -1559,7 +1577,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ3Replying = false;
 
   whenPanelReady(gusQ3Panel, function (doc) {
-    wireGusAnswers(doc, function () { return gus3Order; }, function (v) { gusQ3Replying = v; });
+    wireGusAnswers(doc, "Afternoon advice", function () { return gus3Order; }, function (v) { gusQ3Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1629,7 +1647,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // Leftovers: donating gives no cash (but happy customers), a markdown brings
     // in a little cash, tossing gets nothing back.
     let leftoverPickFb = "";
-    function pickStock(gain: number, fb: string, d: { satisfaction: number; profit: number }) {
+    function pickStock(gain: number, fb: string, name: string, d: { satisfaction: number; profit: number }) {
       if (stockPicked) return;
       stockPicked = true;
       leftoverPickFb = fb;
@@ -1639,17 +1657,18 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.profit += d.profit;
       if (gain > 0) earn(gain);
       else sfxClick();
+      recordDecision("Leftovers", name, fb, d.satisfaction + d.profit);
       stage3Engaged = true;
       beatStock?.setProperties({ display: "none" });
       beatOrder?.setProperties({ display: "flex" });
     }
-    doc.getElementById("close-donate")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbDonate, AFTERNOON.CLOSE_DONATE); } });
-    doc.getElementById("close-markdown")?.setProperties({ onClick: function () { pickStock(ECONOMY.leftoverMarkdownGain, activeShop.afternoon.leftFbMarkdown, AFTERNOON.CLOSE_MARKDOWN); } });
-    doc.getElementById("close-toss")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbToss, AFTERNOON.CLOSE_TOSS); } });
+    doc.getElementById("close-donate")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbDonate, "Donated them", AFTERNOON.CLOSE_DONATE); } });
+    doc.getElementById("close-markdown")?.setProperties({ onClick: function () { pickStock(ECONOMY.leftoverMarkdownGain, activeShop.afternoon.leftFbMarkdown, "Marked them down", AFTERNOON.CLOSE_MARKDOWN); } });
+    doc.getElementById("close-toss")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbToss, "Tossed them", AFTERNOON.CLOSE_TOSS); } });
 
     // The big future order books a deposit into the register now — bigger if you
     // quoted premium, smaller if you quoted a friendly rate.
-    function pickOrder(deposit: number, fb: string, d: { profit: number; satisfaction: number }) {
+    function pickOrder(deposit: number, fb: string, name: string, d: { profit: number; satisfaction: number }) {
       if (orderPicked) return;
       orderPicked = true;
       updateScore("profit", d.profit);
@@ -1657,6 +1676,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.profit += d.profit;
       totals.satisfaction += d.satisfaction;
       earn(deposit);
+      recordDecision("Big order price", name, fb, d.profit + d.satisfaction);
       doneText?.setProperties({ text: activeShop.afternoon.doneText });
       doc.getElementById("recap-a")?.setProperties({ text: leftoverPickFb, display: "flex" });
       doc.getElementById("recap-b")?.setProperties({ text: fb, display: "flex" });
@@ -1664,9 +1684,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       beatOrder?.setProperties({ display: "none" });
       beatDone?.setProperties({ display: "flex" });
     }
-    doc.getElementById("order-premium")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositPremium, activeShop.afternoon.orderFbP, AFTERNOON.ORDER_PREMIUM); } });
-    doc.getElementById("order-fair")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFair, activeShop.afternoon.orderFbF, AFTERNOON.ORDER_FAIR); } });
-    doc.getElementById("order-friendly")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFriendly, activeShop.afternoon.orderFbFriendly, AFTERNOON.ORDER_FRIENDLY); } });
+    doc.getElementById("order-premium")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositPremium, activeShop.afternoon.orderFbP, "Premium price", AFTERNOON.ORDER_PREMIUM); } });
+    doc.getElementById("order-fair")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFair, activeShop.afternoon.orderFbF, "Fair price", AFTERNOON.ORDER_FAIR); } });
+    doc.getElementById("order-friendly")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFriendly, activeShop.afternoon.orderFbFriendly, "Friendly rate", AFTERNOON.ORDER_FRIENDLY); } });
 
     doc.getElementById("continue-button")?.setProperties({
       onClick: function () {
@@ -1702,14 +1722,16 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // MONEY REPORT  —  the finale. Reads the three meters, names the money
   // personality, greets the chosen explorer, and offers Play Again.
   // ==========================================================================
+  // {shop} is swapped for the chosen shop's name in showReport, so no blurb is
+  // hard-wired to the bakery anymore.
   const OWNER_TYPES: Record<string, { name: string; blurb: string }> = {
     bossMaterial: {
       name: "Boss Material",
-      blurb: "You kept customers happy, the money strong, and your gut in charge, all at once. That is the whole package. The bakery is lucky to have you.",
+      blurb: "You kept customers happy, the money strong, and your gut in charge, all at once. That is the whole package. {shop} is lucky to have you.",
     },
     crowdPleaser: {
       name: "The Crowd-Pleaser",
-      blurb: "Customers loved your bakery today. You put people first, and it showed. A happy, loyal crowd is worth its weight in gold.",
+      blurb: "Customers loved your shop today. You put people first, and it showed. A happy, loyal crowd is worth its weight in gold.",
     },
     dealMaker: {
       name: "The Deal-Maker",
@@ -1717,7 +1739,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     },
     natural: {
       name: "The Natural",
-      blurb: "You trusted your instincts and made smart calls all day. That kind of judgment is what turns a good bakery into a great one.",
+      blurb: "You trusted your instincts and made smart calls all day. That kind of judgment is what turns a good shop into a great one.",
     },
     steadyHand: {
       name: "The Steady Hand",
@@ -1725,24 +1747,118 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     },
     learningRopes: {
       name: "Learning the Ropes",
-      blurb: "Running a bakery is hard work, and you gave it a real go today. Every great boss starts somewhere. Come back and try a few new moves!",
+      blurb: "Running a shop is hard work, and you gave it a real go today. Every great boss starts somewhere. Come back and try a few new moves!",
     },
   };
 
   const reportPanel = world
     .createTransformEntity()
-    .addComponent(PanelUI, { config: "./ui/report.json", maxWidth: 2.6, maxHeight: 2.2 })
+    .addComponent(PanelUI, { config: "./ui/report.json", maxWidth: 2.6, maxHeight: 2.9 })
     .addComponent(Interactable);
   reportPanel.object3D!.position.set(STATIONS.bank.x, 1.6, STATIONS.bank.z + 2.2);
   reportPanel.object3D!.visible = false;
   phasePanels[PHASE_CLOSE] = reportPanel;
 
   let reportDoc: any = null;
+  let lastResultText = "";   // the copyable text blob, rebuilt each time the report shows
+  let playAgainArmed = false; // Play Again is a two-tap confirm so a stray click can't nuke results
+
+  // Put the day's results on the clipboard as a plain-text blob the student can
+  // paste into a discussion post or the LMS. Falls back quietly if the browser
+  // blocks clipboard access (e.g. no user gesture / insecure context).
+  function copyResults(doc: any) {
+    const label = doc.getElementById("copy-label");
+    function flash(text: string) {
+      label?.setProperties({ text: text });
+      setTimeout(function () { label?.setProperties({ text: "Copy My Results" }); }, 2200);
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastResultText).then(
+          function () { flash("Copied!"); },
+          function () { flash("Copy blocked"); },
+        );
+      } else {
+        flash("Copy blocked");
+      }
+    } catch {
+      flash("Copy blocked");
+    }
+  }
+
+  // Save the result for a teacher/debrief: to localStorage (a rolling history of
+  // the last 20 runs, plus the latest) and, when embedded in a course shell, up
+  // to the parent frame via postMessage. The schema is documented in README.md.
+  function saveResult(payload: any) {
+    try {
+      localStorage.setItem("bossForADay:last", JSON.stringify(payload));
+      const raw = localStorage.getItem("bossForADay:history");
+      const hist = raw ? JSON.parse(raw) : [];
+      hist.push(payload);
+      while (hist.length > 20) hist.shift();
+      localStorage.setItem("bossForADay:history", JSON.stringify(hist));
+    } catch { /* storage may be blocked/full; not fatal */ }
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "bossForADay:result", payload: payload }, "*");
+      }
+    } catch { /* cross-origin parent; ignore */ }
+  }
+
+  // A plain-text version of the results for the clipboard / a discussion post.
+  function buildResultText(payload: any, best: Decision | null, worst: Decision | null): string {
+    const net = payload.money.net;
+    const lines: string[] = [];
+    lines.push("Boss for a Day — my results");
+    lines.push("Shop: " + payload.shop.name);
+    lines.push("Boss: " + payload.player + " (" + payload.personality + ")");
+    lines.push("Net profit: " + (net >= 0 ? "+$" : "-$") + Math.abs(net) + "  (in $" + payload.money.in + ", out $" + payload.money.out + ")");
+    lines.push("Meters — Satisfaction " + payload.meters.satisfaction + ", Profit " + payload.meters.profit + ", Instinct " + payload.meters.instinct);
+    if (best) lines.push("Best call: " + best.title + " — " + best.choice);
+    if (worst) lines.push("Try next time: " + worst.title + " — " + worst.choice);
+    lines.push("");
+    lines.push("My choices:");
+    for (let i = 0; i < payload.decisions.length; i = i + 1) {
+      const d = payload.decisions[i];
+      lines.push((i + 1) + ". " + d.title + " — " + d.choice);
+    }
+    return lines.join("\n");
+  }
+
   whenPanelReady(reportPanel, function (doc) {
     reportDoc = doc;
+    const pageMain = doc.getElementById("page-main");
+    const pageRecap = doc.getElementById("page-recap");
+
+    doc.getElementById("see-choices-button")?.setProperties({
+      onClick: function () {
+        sfxClick();
+        pageMain?.setProperties({ display: "none" });
+        pageRecap?.setProperties({ display: "flex" });
+      },
+    });
+    doc.getElementById("recap-back-button")?.setProperties({
+      onClick: function () {
+        sfxClick();
+        pageRecap?.setProperties({ display: "none" });
+        pageMain?.setProperties({ display: "flex" });
+      },
+    });
+    doc.getElementById("copy-button")?.setProperties({
+      onClick: function () { sfxClick(); copyResults(doc); },
+    });
     doc.getElementById("play-again-button")?.setProperties({
       onClick: function () {
         sfxClick();
+        if (!playAgainArmed) {
+          playAgainArmed = true;
+          doc.getElementById("play-again-label")?.setProperties({ text: "Tap again to restart" });
+          setTimeout(function () {
+            playAgainArmed = false;
+            doc.getElementById("play-again-label")?.setProperties({ text: "Play Again" });
+          }, 3000);
+          return;
+        }
         window.location.reload(); // a clean, full restart back to the title
       },
     });
@@ -1788,23 +1904,80 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     const t = OWNER_TYPES[key];
     const name = chosenCharacter ? chosenCharacter.name : "boss";
+    const blurb = t.blurb.split("{shop}").join(activeShop.shopName);
+    const netProfitStr = (netProfit >= 0 ? "+$" : "-$") + Math.abs(netProfit);
+
+    // Best call = the choice that helped the meters most; the one to rethink =
+    // the choice that helped least (its own feedback line is the "what to try" tip).
+    let best: Decision | null = null;
+    let worst: Decision | null = null;
+    for (const d of dayDecisions) {
+      if (!best || d.score > best.score) best = d;
+      if (!worst || d.score < worst.score) worst = d;
+    }
+
+    // The three reflection prompts from the module outline's debrief.
+    const reflections = [
+      "What was the hardest choice you faced today, and how did you handle it?",
+      "Name one time you gave up something to get something else. That is opportunity cost.",
+      "If you ran the shop again, what would you change to earn more or make customers happier?",
+    ];
+
+    // Build the result payload, persist it (localStorage + postMessage), and keep
+    // the copyable text blob ready for the Copy My Results button.
+    const payload = {
+      app: "boss-for-a-day",
+      schema: 1,
+      timestamp: new Date().toISOString(),
+      shop: { id: activeShop.id, name: activeShop.shopName },
+      player: name,
+      personality: t.name,
+      meters: { satisfaction: S, profit: P, instinct: I },
+      money: { start: dayStartCash, in: dayMoneyIn, out: dayMoneyOut, net: netProfit },
+      decisions: dayDecisions.map(function (d) { return { title: d.title, choice: d.choice, score: d.score }; }),
+    };
+    saveResult(payload);
+    lastResultText = buildResultText(payload, best, worst);
 
     if (reportDoc) {
+      reportDoc.getElementById("report-eyebrow")?.setProperties({ text: activeShop.shopName.toUpperCase() });
       reportDoc.getElementById("greeting")?.setProperties({ text: "Great work, " + name + "!" });
       reportDoc.getElementById("personality-name")?.setProperties({ text: t.name });
-      reportDoc.getElementById("personality-blurb")?.setProperties({ text: t.blurb });
-      reportDoc.getElementById("value-growth")?.setProperties({ text: String(S) });
-      reportDoc.getElementById("value-security")?.setProperties({ text: String(P) });
-      reportDoc.getElementById("value-smarts")?.setProperties({ text: String(I) });
-      reportDoc.getElementById("fill-growth")?.setProperties({ width: Math.round(S * 0.4) });
-      reportDoc.getElementById("fill-security")?.setProperties({ width: Math.round(P * 0.4) });
-      reportDoc.getElementById("fill-smarts")?.setProperties({ width: Math.round(I * 0.4) });
+      reportDoc.getElementById("personality-blurb")?.setProperties({ text: blurb });
+      reportDoc.getElementById("value-sat")?.setProperties({ text: String(S) });
+      reportDoc.getElementById("value-profit")?.setProperties({ text: String(P) });
+      reportDoc.getElementById("value-instinct")?.setProperties({ text: String(I) });
+      reportDoc.getElementById("fill-sat")?.setProperties({ width: Math.round(S * 0.4) });
+      reportDoc.getElementById("fill-profit")?.setProperties({ width: Math.round(P * 0.4) });
+      reportDoc.getElementById("fill-instinct")?.setProperties({ width: Math.round(I * 0.4) });
 
       // The dollars: money in, money out, and the day's net profit.
       reportDoc.getElementById("report-money-in")?.setProperties({ text: "$" + dayMoneyIn });
       reportDoc.getElementById("report-money-out")?.setProperties({ text: "$" + dayMoneyOut });
-      const netText = (netProfit >= 0 ? "+$" : "-$") + Math.abs(netProfit);
-      reportDoc.getElementById("report-net")?.setProperties({ text: netText, color: netProfit >= 0 ? "#2e7d32" : "#b23a2e" });
+      reportDoc.getElementById("report-net")?.setProperties({ text: netProfitStr, color: netProfit >= 0 ? "#2e7d32" : "#b23a2e" });
+
+      // Best call of the day / one thing to try next time.
+      reportDoc.getElementById("report-best")?.setProperties({ text: best ? best.title + ": " + best.choice + "." : "You gave it a real go today." });
+      reportDoc.getElementById("report-try")?.setProperties({ text: worst ? worst.feedback : "Try a different shop and see what changes." });
+
+      // Recap page: one line per decision, hiding the unused slots.
+      for (let i = 0; i < 10; i = i + 1) {
+        const el = reportDoc.getElementById("recap-line-" + i);
+        if (!el) continue;
+        if (i < dayDecisions.length) {
+          const d = dayDecisions[i];
+          el.setProperties({ text: (i + 1) + ". " + d.title + " — " + d.choice, display: "flex" });
+        } else {
+          el.setProperties({ display: "none" });
+        }
+      }
+      for (let i = 0; i < reflections.length; i = i + 1) {
+        reportDoc.getElementById("think-line-" + i)?.setProperties({ text: (i + 1) + ". " + reflections[i] });
+      }
+
+      // Always open on the debrief page, never the recap.
+      reportDoc.getElementById("page-main")?.setProperties({ display: "flex" });
+      reportDoc.getElementById("page-recap")?.setProperties({ display: "none" });
     }
 
     sfxFanfare();
