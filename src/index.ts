@@ -2071,6 +2071,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     const pageMain = doc.getElementById("page-main");
     const pageRecap = doc.getElementById("page-recap");
 
+    // The recap page is authored display:flex so UIKit builds its lines; hide it
+    // now (its elements stay findable) so the report opens on the debrief page.
+    pageRecap?.setProperties({ display: "none" });
+
     doc.getElementById("see-choices-button")?.setProperties({
       onClick: function () {
         sfxClick();
