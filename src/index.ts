@@ -1,6 +1,6 @@
 // ============================================================================
-// Boss for a Day — Virginia Ventures Module 8
-// FOUNDATION SHELL  —  rebuilt to match the Market Harvest (m4) house style.
+// Boss for a Day - Virginia Ventures Module 8
+// FOUNDATION SHELL  -  rebuilt to match the Market Harvest (m4) house style.
 // This file sets up:
 //   1. The economic CONSTANTS (kept; the stages will read these)
 //   2. The house colors (cream / navy / gold / green)
@@ -30,7 +30,7 @@ import { setActiveShop, activeShop, SHOPS, ShopId, ShopPack, ChoiceOption, ShopD
 import { sfxStage, sfxClick, sfxCoin, sfxDown, sfxFanfare } from "./sfx";
 
 // ============================================================================
-// THE DAY'S LEDGER  (the real economy — money in vs. money out)
+// THE DAY'S LEDGER  (the real economy - money in vs. money out)
 // You open the register with ECONOMY.startingCash and run the shop. Every buy is
 // money out; every sale is money in. Net profit at close is simply in minus out.
 // These totals are tracked independently of the on-screen number (which floors
@@ -41,15 +41,15 @@ let dayStartCash = 0;   // the float you began the day with
 let dayMoneyIn = 0;     // running total of everything earned today
 let dayMoneyOut = 0;    // running total of everything spent today
 let dayStarted = false; // guard so the day is only set up once per playthrough
-let priceTier = "";     // "premium" | "fair" | "bargain" — set in the morning
-let stockTier = "";     // "fancy" | "mix" | "bulk" — set in the morning
+let priceTier = "";     // "premium" | "fair" | "bargain" - set in the morning
+let stockTier = "";     // "fancy" | "mix" | "bulk" - set in the morning
 let flyerChosen = false; // true if the ad flyer growth move was bought
 let dealChosen = false;  // true if the bulk-supply deal growth move was bought
 
 // Every choice the student makes is logged here as it happens, so the daily
 // report can recap the day, name the best call and the one to rethink, and hand
 // the whole run to a teacher (localStorage / clipboard / postMessage). score is
-// the choice's net effect on the meters — higher is a better call.
+// the choice's net effect on the meters - higher is a better call.
 type Decision = { title: string; choice: string; feedback: string; score: number };
 let dayDecisions: Decision[] = [];
 function recordDecision(title: string, choice: string, feedback: string, score: number) {
@@ -490,7 +490,7 @@ function refreshVrDashboard() {
     const c = dashboardDoc.getElementById("dash-clock");
     if (c) {
       const text = stageClockIndex >= 0
-        ? "PART " + (stageClockIndex + 1) + " OF 4  ·  " + CLOCK_LABELS[stageClockIndex].toUpperCase()
+        ? "PART " + (stageClockIndex + 1) + " OF 4  -  " + CLOCK_LABELS[stageClockIndex].toUpperCase()
         : "";
       c.setProperties({ text: text });
     }
@@ -755,7 +755,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // initialPlayerPosition spawns the player RIG (the locomotion collision
     // capsule) on the entrance side of the plaza. The camera below sits at
     // local z 0, so the capsule lines up with where you actually appear to
-    // stand — that is what makes the hedge boundary stop you in the right place.
+    // stand - that is what makes the hedge boundary stop you in the right place.
     // useWorker is OFF on purpose: the worker only syncs world.player back to the
     // app after the first move, so with it on the spawn would sit at the origin
     // and snap forward on the first keypress. On the main thread the initial
@@ -770,7 +770,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   const scene = world.scene;
   const camera = world.camera;
 
-  // Eye height only — no z offset. The player rig is spawned back on the
+  // Eye height only - no z offset. The player rig is spawned back on the
   // entrance side via locomotion's initialPlayerPosition, so keeping the camera
   // at local z 0 means the collision capsule sits exactly under the viewer
   // (otherwise walls would block you metres away from where they look).
@@ -829,7 +829,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // --------------------------------------------------------------------------
   // ONE GAME-LOOP TICK
   // Every proximity check, the panel-on-top pass, the pointer guard, and the
-  // dashboard sync used to be its own setInterval — ~9 timers all firing at 30Hz.
+  // dashboard sync used to be its own setInterval - ~9 timers all firing at 30Hz.
   // They are now registered as frame tasks and driven by ONE interval, which is
   // easier on Quest thermals over a 25-minute session. Each task still early-
   // returns when its stage is done, so finished work costs almost nothing. A task
@@ -888,7 +888,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // PANEL PRESENTATION
   // The story panels are anchored in the world, near Gus or a building. But the
   // player almost always walks RIGHT UP to that anchor, ending up far too close
-  // to read the panel — the cards and buttons at the bottom fall off the screen.
+  // to read the panel - the cards and buttons at the bottom fall off the screen.
   // presentPanel snaps a panel to a comfortable distance directly in front of
   // the player, sized from the panel's real bounds and the live camera so the
   // WHOLE panel fits in view, then turns it to face the player. It is called
@@ -979,7 +979,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Every story panel, watched by one loop that re-applies applyPanelOnTop to
   // whichever is visible. UIKit creates text/glyph meshes lazily and only after
-  // a panel's content is set, so a one-time pass misses them — a panel placed
+  // a panel's content is set, so a one-time pass misses them - a panel placed
   // behind Gus or a building would then show its boxes but hide its words. This
   // keeps the WHOLE visible panel on top, frame after frame.
   const storyPanels: any[] = [];
@@ -1147,7 +1147,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Start the flow at Setup.
   // ==========================================================================
-  // OPENING PANELS  —  title -> how to play -> into Main Street.
+  // OPENING PANELS  -  title -> how to play -> into Main Street.
   // Built from ui/title.uikitml and ui/welcome.uikitml (compiled to public/ui).
   // ==========================================================================
 
@@ -1165,13 +1165,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       }
       attempts = attempts + 1;
       // ~60 fps, so 600 frames ≈ 10s. A panel whose JSON never loads would poll
-      // forever and its stage would hang with no clue why — warn once instead,
+      // forever and its stage would hang with no clue why - warn once instead,
       // then keep trying a while longer before giving up so we don't rAF-spin.
       if (attempts === 600 && !warned) {
         warned = true;
         let cfg = "unknown panel";
         try { cfg = entity.getValue(PanelUI, "config") || cfg; } catch { /* best effort */ }
-        console.warn("[whenPanelReady] " + cfg + " not ready after ~10s — its stage may be stuck; check that the panel JSON loaded.");
+        console.warn("[whenPanelReady] " + cfg + " not ready after ~10s - its stage may be stuck; check that the panel JSON loaded.");
       }
       if (attempts > 1800) return; // ~30s: give up rather than poll indefinitely
       requestAnimationFrame(check);
@@ -1264,7 +1264,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   });
 
   // ==========================================================================
-  // SETUP  —  choose your character, then step onto Main Street.
+  // SETUP  -  choose your character, then step onto Main Street.
   // ==========================================================================
   const setupPanel = world
     .createTransformEntity()
@@ -1321,7 +1321,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   });
 
   // ==========================================================================
-  // GUS'S STAGE 1 QUESTION  —  opens when you walk up to Gus in Stage 1.
+  // GUS'S STAGE 1 QUESTION  -  opens when you walk up to Gus in Stage 1.
   // The best answer grows Money Smarts more; any answer earns some, because
   // thinking it through is the point. Gus explains, then you carry on.
   // ==========================================================================
@@ -1437,7 +1437,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Begin the opening sequence.
   // ==========================================================================
-  // MORNING SETUP  —  opens at the counter, after you have talked with Ms. Delia.
+  // MORNING SETUP  -  opens at the counter, after you have talked with Ms. Delia.
   // Two tap choices (pricing, then stocking) move Profit and Satisfaction; then
   // Open the Doors advances the day to Midday.
   // ==========================================================================
@@ -1501,7 +1501,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.satisfaction += d.satisfaction;
     }
 
-    // SCARCITY / OPPORTUNITY COST — you can afford one growth move, not both.
+    // SCARCITY / OPPORTUNITY COST - you can afford one growth move, not both.
     // Both cost the same, so the whole lesson is "what did you give up?"
     function pickSupply(kind: "deal" | "flyer") {
       if (supplyPicked) return;
@@ -1553,7 +1553,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     doc.getElementById("price-bargain")?.setProperties({ onClick: function () { pickPrice("bargain", activeShop.morning.priceFbB, MORNING.PRICE_BARGAIN); } });
 
     // STOCKING is real cash out (buying inventory), then the doors open and the
-    // lunch rush brings the first real revenue in — sized by these two picks.
+    // lunch rush brings the first real revenue in - sized by these two picks.
     function pickStock(tier: string, cost: number, fb: string, d: { profit: number; satisfaction: number }) {
       if (stockPicked) return;
       stockPicked = true;
@@ -1621,7 +1621,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }, 33);
 
   // ==========================================================================
-  // GUS'S STAGE 2 QUESTION  —  about investing. Opens near Gus in Stage 2.
+  // GUS'S STAGE 2 QUESTION  -  about investing. Opens near Gus in Stage 2.
   // ==========================================================================
   const gusQ2Panel = world
     .createTransformEntity()
@@ -1664,7 +1664,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }, 33);
 
   // ==========================================================================
-  // MIDDAY RUSH  —  opens at your shop floor, after Ms. Delia's Midday question.
+  // MIDDAY RUSH  -  opens at your shop floor, after Ms. Delia's Midday question.
   // Two tap choices: the Cary Street rival's deal, then the burnt-loaf complaint,
   // ending in an "Into the Afternoon" button. The rival judgment moves Owner's
   // Instinct; Profit and Satisfaction drift with the choices.
@@ -1793,7 +1793,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }, 33);
 
   // ==========================================================================
-  // GUS'S STAGE 3 QUESTION  —  about diversifying. Opens near Gus in Stage 3.
+  // GUS'S STAGE 3 QUESTION  -  about diversifying. Opens near Gus in Stage 3.
   // ==========================================================================
   const gusQ3Panel = world
     .createTransformEntity()
@@ -1836,7 +1836,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }, 33);
 
   // ==========================================================================
-  // AFTERNOON CLOSE  —  opens at your counter, after Ms. Delia's question.
+  // AFTERNOON CLOSE  -  opens at your counter, after Ms. Delia's question.
   // Two quick calls (leftover stock, then a big-order quote) nudge Profit and
   // Satisfaction, then a See Your Day button hands off to the report.
   // ==========================================================================
@@ -1906,7 +1906,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     doc.getElementById("close-markdown")?.setProperties({ onClick: function () { pickStock(ECONOMY.leftoverMarkdownGain, activeShop.afternoon.leftFbMarkdown, "Marked them down", AFTERNOON.CLOSE_MARKDOWN); } });
     doc.getElementById("close-toss")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbToss, "Tossed them", AFTERNOON.CLOSE_TOSS); } });
 
-    // The big future order books a deposit into the register now — bigger if you
+    // The big future order books a deposit into the register now - bigger if you
     // quoted premium, smaller if you quoted a friendly rate.
     function pickOrder(deposit: number, fb: string, name: string, d: { profit: number; satisfaction: number }) {
       if (orderPicked) return;
@@ -1960,7 +1960,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }, 33);
 
   // ==========================================================================
-  // MONEY REPORT  —  the finale. Reads the three meters, names the money
+  // MONEY REPORT  -  the finale. Reads the three meters, names the money
   // personality, greets the chosen explorer, and offers Play Again.
   // ==========================================================================
   // {shop} is swapped for the chosen shop's name in showReport, so no blurb is
@@ -2050,18 +2050,18 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   function buildResultText(payload: any, best: Decision | null, worst: Decision | null): string {
     const net = payload.money.net;
     const lines: string[] = [];
-    lines.push("Boss for a Day — my results");
+    lines.push("Boss for a Day - my results");
     lines.push("Shop: " + payload.shop.name);
     lines.push("Boss: " + payload.player + " (" + payload.personality + ")");
     lines.push("Net profit: " + (net >= 0 ? "+$" : "-$") + Math.abs(net) + "  (in $" + payload.money.in + ", out $" + payload.money.out + ")");
-    lines.push("Meters — Satisfaction " + payload.meters.satisfaction + ", Profit " + payload.meters.profit + ", Instinct " + payload.meters.instinct);
-    if (best) lines.push("Best call: " + best.title + " — " + best.choice);
-    if (worst) lines.push("Try next time: " + worst.title + " — " + worst.choice);
+    lines.push("Meters - Satisfaction " + payload.meters.satisfaction + ", Profit " + payload.meters.profit + ", Instinct " + payload.meters.instinct);
+    if (best) lines.push("Best call: " + best.title + " - " + best.choice);
+    if (worst) lines.push("Try next time: " + worst.title + " - " + worst.choice);
     lines.push("");
     lines.push("My choices:");
     for (let i = 0; i < payload.decisions.length; i = i + 1) {
       const d = payload.decisions[i];
-      lines.push((i + 1) + ". " + d.title + " — " + d.choice);
+      lines.push((i + 1) + ". " + d.title + " - " + d.choice);
     }
     return lines.join("\n");
   }
@@ -2207,7 +2207,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         if (!el) continue;
         if (i < dayDecisions.length) {
           const d = dayDecisions[i];
-          el.setProperties({ text: (i + 1) + ". " + d.title + " — " + d.choice, display: "flex" });
+          el.setProperties({ text: (i + 1) + ". " + d.title + " - " + d.choice, display: "flex" });
         } else {
           el.setProperties({ display: "none" });
         }
@@ -2241,7 +2241,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   );
 
   // ========================================================================
-  // SHOP PICKER — the first thing the player sees. The floor, walls, and sky
+  // SHOP PICKER - the first thing the player sees. The floor, walls, and sky
   // are already built, so the player stands in an empty themed room. Tapping a
   // shop sets the active pack, builds that shop's props, hides the picker, and
   // runs the opening.
@@ -2312,7 +2312,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   introPanel.object3D!.visible = true;
 
   // ========================================================================
-  // SHOP WORDS — overwrite each panel's per-shop text from the chosen pack.
+  // SHOP WORDS - overwrite each panel's per-shop text from the chosen pack.
   // Called once, the moment a shop is picked, so every panel shows that
   // shop's words. The questions and activities get added here in 3b and 3c.
   // ========================================================================
@@ -2405,7 +2405,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   }
 
   // ========================================================================
-  // SHOP THEME — paint the onboarding cards (title, welcome, character pick)
+  // SHOP THEME - paint the onboarding cards (title, welcome, character pick)
   // in the chosen shop's colors. Same idea as applyShopWords, but for color.
   // ========================================================================
   function applyShopTheme(pack: ShopPack) {

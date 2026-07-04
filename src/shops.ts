@@ -1,5 +1,5 @@
 // ============================================================================
-// shops.ts  —  CONTENT PACKS for "Boss for a Day".
+// shops.ts  -  CONTENT PACKS for "Boss for a Day".
 // One ShopPack per business. Every per-shop WORD lives here: the owner, the
 // questions, the answer buttons, the lessons, the outcome lines, the goals.
 // The 3D look (colors, the case, the shelves, the owner figure) is handled in
@@ -13,7 +13,7 @@ export type ShopId = "bakery" | "surf" | "repair";
 // A generic three-option decision used by the Phase 4 beats: the midday supplier
 // delay, the afternoon big-order capacity call, and each shop's unique twist.
 // Each option carries its own meter nudges, cash effect, and feedback, so the
-// whole decision — mechanic and words — lives in the shop pack. cash is dollars
+// whole decision - mechanic and words - lives in the shop pack. cash is dollars
 // in (positive) or out (negative); best marks the strongest choice.
 export interface ChoiceOption {
   label: string;
@@ -103,7 +103,7 @@ export interface ShopPack {
   // The MONEY side of the day. The dollar amounts themselves are shared and live
   // in ECONOMY (below), so the whole game balances from one place. What lives here
   // per shop is only the WORDS around money: the morning "spend to grow" choice
-  // (a real scarcity / opportunity-cost decision — you can afford one, not both)
+  // (a real scarcity / opportunity-cost decision - you can afford one, not both)
   // and the flavor labels on the between-stage sales ticks.
   economy: {
     oppQ: string;          // the framing line for the morning growth decision
@@ -117,7 +117,7 @@ export interface ShopPack {
 }
 
 // ----------------------------------------------------------------------------
-// ECONOMY — the one place the whole day is balanced. Every dollar amount lives
+// ECONOMY - the one place the whole day is balanced. Every dollar amount lives
 // here so a teacher (or a later phase) can retune the game without touching the
 // stage logic. All three shops share these numbers; only the wording differs.
 //
@@ -130,12 +130,12 @@ export const ECONOMY = {
   startingCash: 150, // the register float you start the day with
 
   // MORNING opportunity-cost decision. Both growth moves cost the SAME, so the
-  // lesson is purely "what did you give up?" — not "which number is bigger."
+  // lesson is purely "what did you give up?" - not "which number is bigger."
   oppCost: 60,        // price of the bulk deal OR the flyer (you can pick one)
   flyerBonus: 40,     // the flyer adds this to EACH sales tick (two rushes)
   bulkDealRebate: 70, // the deal pays back at close as lower supply costs
 
-  // MORNING stocking — buying inventory is real cash out of the register.
+  // MORNING stocking - buying inventory is real cash out of the register.
   stockFancyCost: 55, // high-end stock costs the most up front
   stockMixCost: 45,
   stockBulkCost: 40,
@@ -162,7 +162,7 @@ export const ECONOMY = {
 };
 
 // ----------------------------------------------------------------------------
-// SHOP 1 — Sweet Capital Bakery (Cary Street, Richmond) — owner Ms. Delia
+// SHOP 1 - Sweet Capital Bakery (Cary Street, Richmond) - owner Ms. Delia
 // ----------------------------------------------------------------------------
 const BAKERY: ShopPack = {
   id: "bakery",
@@ -270,11 +270,11 @@ const BAKERY: ShopPack = {
     orderFbFriendly: "A friendly, low rate keeps the cafe loyal for years, but you leave a little money on the table each week.",
     capacity: {
       eyebrow: "A HUGE ORDER",
-      q: "A caterer wants 200 cupcakes by 3pm — big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
+      q: "A caterer wants 200 cupcakes by 3pm - big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
       options: [
-        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
-        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
-        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting - and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real - you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance - and its cash - on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
       ],
     },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
@@ -300,7 +300,7 @@ const BAKERY: ShopPack = {
 };
 
 // ----------------------------------------------------------------------------
-// SHOP 2 — Atlantic Avenue Surf Co. (VB boardwalk) — owner Mr. Reyes
+// SHOP 2 - Atlantic Avenue Surf Co. (VB boardwalk) - owner Mr. Reyes
 // ----------------------------------------------------------------------------
 const SURF: ShopPack = {
   id: "surf",
@@ -408,11 +408,11 @@ const SURF: ShopPack = {
     orderFbFriendly: "A friendly, low rate keeps the camp loyal for years, but you leave a little money on the table each week.",
     capacity: {
       eyebrow: "A HUGE ORDER",
-      q: "A beach resort wants 30 boards and wetsuits set up for a big event by 3pm — big money, but it will eat your whole afternoon. Your walk-in surfers still need you. How much do you take on?",
+      q: "A beach resort wants 30 boards and wetsuits set up for a big event by 3pm - big money, but it will eat your whole afternoon. Your walk-in surfers still need you. How much do you take on?",
       options: [
-        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in surfers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
-        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
-        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in surfers waiting - and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real - you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance - and its cash - on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
       ],
     },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
@@ -438,7 +438,7 @@ const SURF: ShopPack = {
 };
 
 // ----------------------------------------------------------------------------
-// SHOP 3 — Clarendon Device Repair (Arlington) — owner Ms. Okafor
+// SHOP 3 - Clarendon Device Repair (Arlington) - owner Ms. Okafor
 // ----------------------------------------------------------------------------
 const REPAIR: ShopPack = {
   id: "repair",
@@ -546,11 +546,11 @@ const REPAIR: ShopPack = {
     orderFbFriendly: "A friendly, low rate keeps the company loyal for years, but you leave a little money on the table each week.",
     capacity: {
       eyebrow: "A HUGE ORDER",
-      q: "An office wants 40 laptops fixed by 3pm — big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
+      q: "An office wants 40 laptops fixed by 3pm - big money, but it will eat your whole afternoon. Your walk-in customers still need you. How much do you take on?",
       options: [
-        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting — and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
-        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real — you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
-        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance — and its cash — on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
+        { label: "Take the whole order", fb: "The big check is tempting, but tying up your whole afternoon leaves walk-in customers waiting - and some walk out.", sat: -12, profit: 6, instinct: -2, cash: 90, best: false },
+        { label: "Take half, keep serving walk-ins", fb: "A slice of the big order AND caring for your regulars is the balanced call. Capacity is real - you cannot do it all.", sat: 2, profit: 4, instinct: 8, cash: 50, best: true },
+        { label: "Turn it down, focus on today", fb: "Playing it safe keeps your regulars happy, but you left a big chance - and its cash - on the table.", sat: 6, profit: -2, instinct: 0, cash: 0, best: false },
       ],
     },
     doneText: "That is a wrap. Time to see how your day at the shop went.",
