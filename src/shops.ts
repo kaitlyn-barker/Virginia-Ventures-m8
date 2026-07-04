@@ -39,24 +39,38 @@ export interface ShopPack {
     closeCounter: string;
   };
 
+  // Every owner question and every stage pick now carries its OWN feedback line,
+  // so a wrong answer explains the tradeoff of THAT choice instead of a shared
+  // "good guess." gusBScore/gusCScore rank the two non-best answers so a thoughtful
+  // run scores higher than a careless one: the best answer earns full instinct,
+  // a fair-but-flawed answer earns a little, a clearly poor answer earns none.
   morning: {
     gusQ: string; gusBest: string; gusB: string; gusC: string; gusLesson: string;
+    gusBFb: string; gusCFb: string; gusBScore: number; gusCScore: number;
     priceQ: string; stockQ: string; readyText: string;
     priceP: string; priceF: string; priceB: string;
     stockFancy: string; stockMix: string; stockBulk: string;
+    priceFbP: string; priceFbF: string; priceFbB: string;
+    stockFbFancy: string; stockFbMix: string; stockFbBulk: string;
   };
 
   midday: {
     gusQ: string; gusBest: string; gusB: string; gusC: string; gusLesson: string;
+    gusBFb: string; gusCFb: string; gusBScore: number; gusCScore: number;
     rivalQ: string; rivalHold: string; rivalMatch: string; rivalIgnore: string;
     compQ: string; compFree: string; compDiscount: string; compFirm: string;
+    rivalFbHold: string; rivalFbMatch: string; rivalFbIgnore: string;
+    compFbFree: string; compFbDiscount: string; compFbFirm: string;
     doneText: string;
   };
 
   afternoon: {
     gusQ: string; gusBest: string; gusB: string; gusC: string; gusLesson: string;
+    gusBFb: string; gusCFb: string; gusBScore: number; gusCScore: number;
     leftoverQ: string; leftDonate: string; leftMarkdown: string; leftToss: string;
     orderQ: string; orderP: string; orderF: string; orderFriendly: string;
+    leftFbDonate: string; leftFbMarkdown: string; leftFbToss: string;
+    orderFbP: string; orderFbF: string; orderFbFriendly: string;
     doneText: string;
   };
 
@@ -148,16 +162,26 @@ const BAKERY: ShopPack = {
     gusBest: "Buy a fair amount. Enough to save money, but not so much it sits unused.",
     gusB: "Grab the whole pallet! A discount is always worth it.",
     gusC: "Skip it, and just keep what we have.",
-    gusLesson: "The discount only helps if you can actually use it. A fair amount saves money without wasting flour or cash. Nice judgment.",
+    gusLesson: "The discount only helps if you can really use it. A fair amount saves money without wasting flour or cash. Nice judgment.",
+    gusBFb: "A discount you can't use isn't a savings. All that extra flour would go stale, and your cash is stuck on the shelf.",
+    gusCFb: "Playing it safe is okay, but you walked past an easy way to save. A smaller order would have paid off.",
+    gusBScore: 0,
+    gusCScore: 4,
     priceQ: "How do you price the bakery's treats this morning?",
     stockQ: "What do you bake the most of today?",
     readyText: "Your prices are set and your cases are full. Time to open the doors!",
-    priceP: "Premium prices. Charge more for top dollar.",
+    priceP: "Premium prices. Charge a little more for top-quality treats.",
     priceF: "Fair prices. A solid deal for everyone.",
     priceB: "Bargain prices. Cheap treats bring big crowds.",
     stockFancy: "Fancy treats. High price, high reward.",
     stockMix: "A balanced mix of treats.",
     stockBulk: "Cheap treats in bulk. A crowd favorite.",
+    priceFbP: "Premium means charging more. You earn the most per sale, but fewer people buy.",
+    priceFbF: "Fair prices keep both your cash and your customers happy. A safe middle.",
+    priceFbB: "Bargain prices pull a big crowd, but you earn only a little on each sale.",
+    stockFbFancy: "Fancy treats cost more to make and sell for more. A big reward if they sell.",
+    stockFbMix: "A balanced mix gives every customer something. Steady and safe.",
+    stockFbBulk: "Cheap treats in bulk sell fast to a crowd, but each one earns just a little.",
   },
   midday: {
     gusQ: "A customer wants two dozen cupcakes boxed up in twenty minutes, right in the middle of the lunch rush. What do you do?",
@@ -165,14 +189,24 @@ const BAKERY: ShopPack = {
     gusB: "Say yes and drop everything to box them all right now.",
     gusC: "Turn it down. You are too slammed to bother.",
     gusLesson: "Good instincts balance the order against the customers already in line. A clear, honest timeline wins both. That is the read to trust.",
+    gusBFb: "Helping fast feels good, but dropping the whole line for one order leaves your other customers waiting and grumpy.",
+    gusCFb: "Saying no keeps things calm, but you turned away good business. A quick, honest 'a few minutes, please' would have won both.",
+    gusBScore: 4,
+    gusCScore: 0,
     rivalQ: "A bakery on Cary Street just started a buy-one-get-one sale. What is your move?",
     rivalHold: "Hold steady, and add a small thank-you treat for regulars.",
     rivalMatch: "Slash your prices to beat their deal.",
     rivalIgnore: "Ignore it. Their deal is not your problem.",
     compQ: "A customer says the loaf they bought came out burnt. How do you handle it?",
     compFree: "Say sorry and swap it for a fresh loaf, no charge.",
-    compDiscount: "Offer a small discount on their next visit.",
+    compDiscount: "Offer a small markdown on their next visit.",
     compFirm: "Tell them all sales are final.",
+    rivalFbHold: "Holding your prices and thanking your regulars keeps you steady and builds loyalty. Smart.",
+    rivalFbMatch: "Slashing (cutting) your prices to match starts a price war. You keep the crowd but earn far less on every sale.",
+    rivalFbIgnore: "Ignoring the rival is calm, but a small thank-you for regulars would have kept them from wandering down the street.",
+    compFbFree: "A free, fresh loaf costs a little now but turns an upset customer into a fan. Worth it.",
+    compFbDiscount: "A markdown (lower price) on their next visit is fair and brings them back, but it does less to fix today's letdown.",
+    compFbFirm: "'All sales are final' saves one loaf but loses a customer, and they will tell their friends.",
     doneText: "The lunch rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -180,15 +214,25 @@ const BAKERY: ShopPack = {
     gusBest: "Say yes, and block out time tomorrow so you can do it right.",
     gusB: "Say yes to every single thing they ask, right now, on top of today.",
     gusC: "Say no. It is too big a risk.",
-    gusLesson: "The best opportunities are worth a yes, when you back it with a real plan to deliver. Confidence plus a plan is the instinct that grows a business.",
+    gusLesson: "The best chances are worth a yes, when you back it with a real plan to deliver. Confidence plus a plan is the instinct that grows a business.",
+    gusBFb: "Saying yes to everything at once, on top of today, is how you burn out and drop the ball. Big chances need a plan, not a panic.",
+    gusCFb: "Saying no is safe, but you turned down the biggest order the shop has ever seen. With a plan, you could have handled it.",
+    gusBScore: 4,
+    gusCScore: 0,
     leftoverQ: "It is closing time, and you have day-old bread and unsold pastries. What do you do?",
     leftDonate: "Donate the extra bread to a nearby shelter.",
     leftMarkdown: "Mark down the day's bakes so they sell fast.",
     leftToss: "Just pack it all away for tomorrow.",
-    orderQ: "A cafe wants to book a standing weekly bread order. How do you price it?",
-    orderP: "Premium. A big standing order is worth top dollar.",
+    orderQ: "A cafe wants to book a standing order (the same order every week). How do you price it?",
+    orderP: "Premium. A big weekly order is worth top dollar.",
     orderF: "A fair price for a big job.",
     orderFriendly: "A friendly rate to keep them coming back.",
+    leftFbDonate: "Donating earns no cash, but it makes people proud of your shop and nothing goes to waste.",
+    leftFbMarkdown: "A markdown (lower price) sells the leftovers fast and brings in a little cash before they go stale.",
+    leftFbToss: "Packing day-old bread away means it just goes stale. You get nothing back for it.",
+    orderFbP: "A premium price on a weekly order earns the most, but the cafe may shop around for a better deal.",
+    orderFbF: "A fair price on a standing order (the same order every week) is steady money you can count on. A smart bet.",
+    orderFbFriendly: "A friendly, low rate keeps the cafe loyal for years, but you leave a little money on the table each week.",
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {
@@ -230,15 +274,25 @@ const SURF: ShopPack = {
     gusB: "Grab the whole crate! A discount is a discount.",
     gusC: "Skip it, and just keep what we have.",
     gusLesson: "Good instincts weigh the deal against what you will actually use. A fair amount saves money without tying up cash in gear that just sits. Nice read.",
+    gusBFb: "A discount you can't use isn't a savings. All those extra wetsuits would sit in the back, and your cash is stuck on the rack.",
+    gusCFb: "Playing it safe is okay, but you walked past an easy way to save. A smaller crate would have paid off.",
+    gusBScore: 0,
+    gusCScore: 4,
     priceQ: "How do you price your boards and gear this morning?",
     stockQ: "What do you stock the most of today?",
     readyText: "Your prices are set and your boards are racked. Time to open the doors!",
-    priceP: "Premium prices. Charge more for prime boardwalk gear.",
+    priceP: "Premium prices. Charge a little more for top-quality boardwalk gear.",
     priceF: "Fair prices. A solid deal for every surfer.",
     priceB: "Bargain prices. Cheap rentals bring big crowds.",
     stockFancy: "High-end boards. High price, high reward.",
     stockMix: "A balanced mix of boards and gear.",
     stockBulk: "Cheap accessories in bulk. A crowd favorite.",
+    priceFbP: "Premium means charging more. You earn the most per rental, but fewer people buy.",
+    priceFbF: "Fair prices keep both your cash and your surfers happy. A safe middle.",
+    priceFbB: "Bargain prices pull a big crowd, but you earn only a little on each rental.",
+    stockFbFancy: "High-end boards cost more to stock and rent for more. A big reward if they go out.",
+    stockFbMix: "A balanced mix of boards and gear gives every surfer something. Steady and safe.",
+    stockFbBulk: "Cheap accessories in bulk sell fast to a crowd, but each one earns just a little.",
   },
   midday: {
     gusQ: "A camp counselor wants ten boards rented and ready in fifteen minutes, right in the middle of the rush. What do you do?",
@@ -246,6 +300,10 @@ const SURF: ShopPack = {
     gusB: "Say yes and drop everything to rig all ten right now.",
     gusC: "Turn it down. You are too slammed to bother.",
     gusLesson: "Good instincts balance the big group against the customers already in line. A clear, honest timeline wins both. That is the read to trust.",
+    gusBFb: "Helping fast feels good, but dropping the whole line for one group leaves your other customers waiting and grumpy.",
+    gusCFb: "Saying no keeps things calm, but you turned away good business. A quick, honest 'a few minutes, please' would have won both.",
+    gusBScore: 4,
+    gusCScore: 0,
     rivalQ: "A shop further down the boardwalk just slashed its rental prices. What is your move?",
     rivalHold: "Hold steady, and toss in a free wax for regulars.",
     rivalMatch: "Slash your prices to beat their deal.",
@@ -254,6 +312,12 @@ const SURF: ShopPack = {
     compFree: "Say sorry and swap it for a fresh board, no charge.",
     compDiscount: "Offer a small discount on their next rental.",
     compFirm: "Tell them all rentals are final.",
+    rivalFbHold: "Holding your prices and thanking your regulars keeps you steady and builds loyalty. Smart.",
+    rivalFbMatch: "Slashing (cutting) your prices to match starts a price war. You keep the crowd but earn far less on every rental.",
+    rivalFbIgnore: "Ignoring the rival is calm, but a free wax for regulars would have kept them from wandering down the boardwalk.",
+    compFbFree: "A fresh board at no charge costs a little now but turns an upset customer into a fan. Worth it.",
+    compFbDiscount: "A discount (lower price) on their next rental is fair and brings them back, but it does less to fix today's letdown.",
+    compFbFirm: "'All rentals are final' saves one board but loses a customer, and they will tell their friends.",
     doneText: "The boardwalk rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -262,14 +326,24 @@ const SURF: ShopPack = {
     gusB: "Say yes to every single thing they ask, right now, on top of today.",
     gusC: "Say no. It is too big a risk.",
     gusLesson: "The best opportunities are worth a yes, when you back it with a real plan to deliver. Confidence plus a plan is the instinct that grows a business.",
+    gusBFb: "Saying yes to everything at once, on top of today, is how you burn out and drop the ball. Big chances need a plan, not a panic.",
+    gusCFb: "Saying no is safe, but you turned down the biggest order the shop has ever seen. With a plan, you could have handled it.",
+    gusBScore: 4,
+    gusCScore: 0,
     leftoverQ: "It is closing time, and you have rental boards back and unsold sunscreen. What do you do?",
     leftDonate: "Hand the extra sunscreen to the lifeguard stand.",
-    leftMarkdown: "Mark down the day's gear so it sells fast.",
+    leftMarkdown: "Mark down (lower the price on) the day's gear so it sells fast.",
     leftToss: "Just pack it all away for tomorrow.",
-    orderQ: "A summer camp wants to book a big group rental for next week. How do you price it?",
-    orderP: "Premium. A big standing order is worth top dollar.",
+    orderQ: "A summer camp wants to book a group rental for next week (the same order every week). How do you price it?",
+    orderP: "Premium. A big weekly order is worth top dollar.",
     orderF: "A fair price for a big booking.",
     orderFriendly: "A friendly rate to keep them coming back.",
+    leftFbDonate: "Handing off the extra earns no cash, but it makes people proud of your shop and nothing goes to waste.",
+    leftFbMarkdown: "A markdown (lower price) sells the leftover gear fast and brings in a little cash before the season ends.",
+    leftFbToss: "Packing the gear away just leaves it sitting in the back. You get nothing back for it today.",
+    orderFbP: "A premium price on a weekly rental earns the most, but the camp may shop around for a better deal.",
+    orderFbF: "A fair price on a standing order (the same booking every week) is steady money you can count on. A smart bet.",
+    orderFbFriendly: "A friendly, low rate keeps the camp loyal for years, but you leave a little money on the table each week.",
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {
@@ -311,15 +385,25 @@ const REPAIR: ShopPack = {
     gusB: "Grab the whole lot! A discount is a discount.",
     gusC: "Skip it, and just order what today needs.",
     gusLesson: "Good instincts weigh the deal against what you will actually use. A fair amount saves money without tying up cash in parts that just sit. Nice read.",
+    gusBFb: "A discount you can't use isn't a savings. All those extra screens would sit in a box, and your cash is stuck on the shelf.",
+    gusCFb: "Playing it safe is okay, but you walked past an easy way to save. A smaller lot would have paid off.",
+    gusBScore: 0,
+    gusCScore: 4,
     priceQ: "How do you price your repairs this morning?",
     stockQ: "What do you focus on today?",
     readyText: "Your prices are set and your bench is ready. Time to open the doors!",
-    priceP: "Premium prices. Charge more for expert work.",
+    priceP: "Premium prices. Charge a little more for expert, top-quality work.",
     priceF: "Fair prices. A solid deal for every customer.",
     priceB: "Bargain prices. Cheap fixes bring big crowds.",
     stockFancy: "Big laptop jobs. High price, high reward.",
     stockMix: "A balanced mix of repairs.",
     stockBulk: "Quick, cheap fixes in bulk. A crowd favorite.",
+    priceFbP: "Premium means charging more. You earn the most per fix, but fewer people buy.",
+    priceFbF: "Fair prices keep both your cash and your customers happy. A safe middle.",
+    priceFbB: "Bargain prices pull a big crowd, but you earn only a little on each fix.",
+    stockFbFancy: "Big laptop jobs cost more to take on and pay more. A big reward if they come in.",
+    stockFbMix: "A balanced mix of repairs gives every customer something. Steady and safe.",
+    stockFbBulk: "Quick, cheap fixes in bulk sell fast to a crowd, but each one earns just a little.",
   },
   midday: {
     gusQ: "A customer needs a cracked phone fixed in under an hour before a flight, right in the middle of the rush. What do you do?",
@@ -327,6 +411,10 @@ const REPAIR: ShopPack = {
     gusB: "Say yes and drop every other repair to rush it now.",
     gusC: "Turn it down. You are too backed up to bother.",
     gusLesson: "Good instincts balance the rush job against the customers already waiting. A clear, honest timeline wins both. That is the read to trust.",
+    gusBFb: "Helping fast feels good, but dropping every other repair for one job leaves your other customers waiting and grumpy.",
+    gusCFb: "Saying no keeps things calm, but you turned away good business. A quick, honest 'a few minutes, please' would have won both.",
+    gusBScore: 4,
+    gusCScore: 0,
     rivalQ: "A mall kiosk nearby just dropped its repair prices. What is your move?",
     rivalHold: "Hold steady, and back your repairs with a free warranty.",
     rivalMatch: "Slash your prices to beat their deal.",
@@ -335,6 +423,12 @@ const REPAIR: ShopPack = {
     compFree: "Say sorry and fix it again for free, right away.",
     compDiscount: "Offer a small discount on their next repair.",
     compFirm: "Tell them all repairs are final.",
+    rivalFbHold: "Holding your prices and backing your work with a warranty keeps you steady and builds loyalty. Smart.",
+    rivalFbMatch: "Slashing (cutting) your prices to match starts a price war. You keep the crowd but earn far less on every fix.",
+    rivalFbIgnore: "Ignoring the rival is calm, but a free warranty for your customers would have kept them from wandering to the mall.",
+    compFbFree: "A free re-fix costs a little now but turns an upset customer into a fan. Worth it.",
+    compFbDiscount: "A discount (lower price) on their next repair is fair and brings them back, but it does less to fix today's letdown.",
+    compFbFirm: "'All repairs are final' saves one job but loses a customer, and they will tell their friends.",
     doneText: "The midday rush is behind you. Word of how you handled it is already spreading.",
   },
   afternoon: {
@@ -343,14 +437,24 @@ const REPAIR: ShopPack = {
     gusB: "Say yes to every single thing they ask, right now, on top of today.",
     gusC: "Say no. It is too big a risk.",
     gusLesson: "The best opportunities are worth a yes, when you back it with a real plan to deliver. Confidence plus a plan is the instinct that grows a business.",
+    gusBFb: "Saying yes to everything at once, on top of today, is how you burn out and drop the ball. Big chances need a plan, not a panic.",
+    gusCFb: "Saying no is safe, but you turned down the biggest order the shop has ever seen. With a plan, you could have handled it.",
+    gusBScore: 4,
+    gusCScore: 0,
     leftoverQ: "It is closing time, and you have spare parts and a few fixed-up devices. What do you do?",
     leftDonate: "Donate a refurbished tablet to the local library.",
-    leftMarkdown: "Sell the refurbished devices at a markdown.",
+    leftMarkdown: "Sell the refurbished devices at a markdown (lower price).",
     leftToss: "Just shelve them for tomorrow.",
-    orderQ: "A company wants to book a big batch of repairs for next week. How do you price it?",
-    orderP: "Premium. A big standing order is worth top dollar.",
+    orderQ: "A company wants to book a batch of repairs for next week (the same order every week). How do you price it?",
+    orderP: "Premium. A big weekly order is worth top dollar.",
     orderF: "A fair price for a big batch.",
     orderFriendly: "A friendly rate to keep them coming back.",
+    leftFbDonate: "Donating a device earns no cash, but it makes people proud of your shop and nothing goes to waste.",
+    leftFbMarkdown: "A markdown (lower price) sells the refurbished devices fast and brings in a little cash instead of leaving them on the shelf.",
+    leftFbToss: "Shelving the devices means they just sit there. You get nothing back for them today.",
+    orderFbP: "A premium price on a weekly batch earns the most, but the company may shop around for a better deal.",
+    orderFbF: "A fair price on a standing order (the same batch every week) is steady money you can count on. A smart bet.",
+    orderFbFriendly: "A friendly, low rate keeps the company loyal for years, but you leave a little money on the table each week.",
     doneText: "That is a wrap. Time to see how your day at the shop went.",
   },
   economy: {

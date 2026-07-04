@@ -1107,10 +1107,63 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // thinking it through is the point. Gus explains, then you carry on.
   // ==========================================================================
   const GUSQ1_RADIUS = 3.0; // how close you must be for the question to open
-  const SMARTS_BEST = 10;   // Money Smarts for the best answer
-  const SMARTS_OK = 0;      // a wrong answer earns no Money Smarts, so the
-                            // meter actually reflects getting answers right
-                            // (used by all three of Gus's questions)
+  const SMARTS_BEST = 10;   // Owner's Instinct for the best answer; per-option
+                            // scores for the other answers now live in shops.ts
+                            // (gusBScore / gusCScore).
+
+  // A shuffled owner question keeps the best answer from always sitting in the
+  // same button. The order is built once per playthrough (in applyShopWords) and
+  // read at click time, so the SAME shuffle drives both the labels and the score.
+  type GusOpt = { label: string; score: number; fb: string; isBest: boolean };
+  function buildGusOpts(g: {
+    gusBest: string; gusB: string; gusC: string; gusLesson: string;
+    gusBFb: string; gusCFb: string; gusBScore: number; gusCScore: number;
+  }): GusOpt[] {
+    return [
+      { label: g.gusBest, score: SMARTS_BEST, fb: g.gusLesson, isBest: true },
+      { label: g.gusB, score: g.gusBScore, fb: g.gusBFb, isBest: false },
+      { label: g.gusC, score: g.gusCScore, fb: g.gusCFb, isBest: false },
+    ];
+  }
+  function shuffleOpts(a: GusOpt[]): GusOpt[] {
+    for (let i = a.length - 1; i > 0; i = i - 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  // The live shuffled order for each owner question (reset per shop in applyShopWords).
+  let gus1Order: GusOpt[] = buildGusOpts(activeShop.morning);
+  let gus2Order: GusOpt[] = buildGusOpts(activeShop.midday);
+  let gus3Order: GusOpt[] = buildGusOpts(activeShop.afternoon);
+
+  // Wire a shuffled owner question's three answer buttons and its reply beat.
+  // getOrder reads the live order so button A/B/C map to whatever option landed
+  // there this playthrough; each answer shows its OWN feedback and its own score.
+  function wireGusAnswers(doc: any, getOrder: () => GusOpt[], setReplying: (v: boolean) => void) {
+    const beatQ = doc.getElementById("beat-q");
+    const beatReply = doc.getElementById("beat-reply");
+    const replyText = doc.getElementById("reply-text");
+    const meterChange = doc.getElementById("meter-change");
+    beatQ?.setProperties({ display: "flex" });
+    beatReply?.setProperties({ display: "none" });
+    let answered = false; // only the first tap counts
+    function answer(opt: GusOpt) {
+      if (answered) return;
+      answered = true;
+      sfxCoin();
+      updateScore("instinct", opt.score);
+      const opener = opt.isBest ? "Exactly right!" : "Good try.";
+      replyText?.setProperties({ text: opener + " " + opt.fb });
+      meterChange?.setProperties({ text: "Owner's Instinct  +" + opt.score });
+      beatQ?.setProperties({ display: "none" });
+      beatReply?.setProperties({ display: "flex" });
+      setReplying(true);
+    }
+    doc.getElementById("answer-a")?.setProperties({ onClick: function () { answer(getOrder()[0]); } });
+    doc.getElementById("answer-b")?.setProperties({ onClick: function () { answer(getOrder()[1]); } });
+    doc.getElementById("answer-c")?.setProperties({ onClick: function () { answer(getOrder()[2]); } });
+  }
 
   const gusQ1Panel = world
     .createTransformEntity()
@@ -1123,32 +1176,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ1Replying = false; // true while the reply is on screen (keep it up)
 
   whenPanelReady(gusQ1Panel, function (doc) {
-    const beatQ = doc.getElementById("beat-q");
-    const beatReply = doc.getElementById("beat-reply");
-    const replyText = doc.getElementById("reply-text");
-
-    // Start on the question; hide the reply.
-    beatQ?.setProperties({ display: "flex" });
-    beatReply?.setProperties({ display: "none" });
-
-    let answered = false; // only the first tap counts
-    function answer(isBest: boolean, opener: string) {
-      if (answered) return;
-      answered = true;
-      sfxCoin();
-      const instinctGain = isBest ? SMARTS_BEST : SMARTS_OK;
-      updateScore("instinct", instinctGain);
-      const lesson = activeShop.morning.gusLesson;
-      replyText?.setProperties({ text: opener + " " + lesson });
-      doc.getElementById("meter-change")?.setProperties({ text: "Owner's Instinct  +" + instinctGain });
-      beatQ?.setProperties({ display: "none" });
-      beatReply?.setProperties({ display: "flex" });
-      gusQ1Replying = true;
-    }
-
-    doc.getElementById("answer-a")?.setProperties({ onClick: function () { answer(true, "Exactly right!"); } });
-    doc.getElementById("answer-b")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
-    doc.getElementById("answer-c")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
+    wireGusAnswers(doc, function () { return gus1Order; }, function (v) { gusQ1Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1275,22 +1303,25 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
 
     // PRICING sets the margin the two sales ticks earn; it costs nothing now.
-    function pickPrice(tier: string, d: { profit: number; satisfaction: number }) {
+    // The pick's consequence line is held so the OPEN beat can recap both choices.
+    let pricePickFb = "";
+    function pickPrice(tier: string, fb: string, d: { profit: number; satisfaction: number }) {
       if (pricePicked) return;
       pricePicked = true;
       priceTier = tier;
+      pricePickFb = fb;
       applyMeters(d);
       sfxClick();
       beatPrice?.setProperties({ display: "none" });
       beatStock?.setProperties({ display: "flex" });
     }
-    doc.getElementById("price-premium")?.setProperties({ onClick: function () { pickPrice("premium", MORNING.PRICE_PREMIUM); } });
-    doc.getElementById("price-fair")?.setProperties({ onClick: function () { pickPrice("fair", MORNING.PRICE_FAIR); } });
-    doc.getElementById("price-bargain")?.setProperties({ onClick: function () { pickPrice("bargain", MORNING.PRICE_BARGAIN); } });
+    doc.getElementById("price-premium")?.setProperties({ onClick: function () { pickPrice("premium", activeShop.morning.priceFbP, MORNING.PRICE_PREMIUM); } });
+    doc.getElementById("price-fair")?.setProperties({ onClick: function () { pickPrice("fair", activeShop.morning.priceFbF, MORNING.PRICE_FAIR); } });
+    doc.getElementById("price-bargain")?.setProperties({ onClick: function () { pickPrice("bargain", activeShop.morning.priceFbB, MORNING.PRICE_BARGAIN); } });
 
     // STOCKING is real cash out (buying inventory), then the doors open and the
     // lunch rush brings the first real revenue in — sized by these two picks.
-    function pickStock(tier: string, cost: number, d: { profit: number; satisfaction: number }) {
+    function pickStock(tier: string, cost: number, fb: string, d: { profit: number; satisfaction: number }) {
       if (stockPicked) return;
       stockPicked = true;
       stockTier = tier;
@@ -1299,15 +1330,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       const lunch = computeRush(ECONOMY.lunchRushBase);
       earn(lunch);
       readyText?.setProperties({ text: activeShop.morning.readyText });
+      doc.getElementById("recap-a")?.setProperties({ text: pricePickFb, display: "flex" });
+      doc.getElementById("recap-b")?.setProperties({ text: fb, display: "flex" });
       revenueLine?.setProperties({ text: activeShop.economy.lunchRushLabel + " $" + lunch + "!", display: "flex" });
       showMeterChanges(doc, totals.satisfaction, totals.profit, 0);
       beatStock?.setProperties({ display: "none" });
       beatReady?.setProperties({ display: "flex" });
       stage1ShowingOutcome = true;
     }
-    doc.getElementById("stock-fancy")?.setProperties({ onClick: function () { pickStock("fancy", ECONOMY.stockFancyCost, MORNING.STOCK_FANCY); } });
-    doc.getElementById("stock-mix")?.setProperties({ onClick: function () { pickStock("mix", ECONOMY.stockMixCost, MORNING.STOCK_MIX); } });
-    doc.getElementById("stock-bulk")?.setProperties({ onClick: function () { pickStock("bulk", ECONOMY.stockBulkCost, MORNING.STOCK_BULK); } });
+    doc.getElementById("stock-fancy")?.setProperties({ onClick: function () { pickStock("fancy", ECONOMY.stockFancyCost, activeShop.morning.stockFbFancy, MORNING.STOCK_FANCY); } });
+    doc.getElementById("stock-mix")?.setProperties({ onClick: function () { pickStock("mix", ECONOMY.stockMixCost, activeShop.morning.stockFbMix, MORNING.STOCK_MIX); } });
+    doc.getElementById("stock-bulk")?.setProperties({ onClick: function () { pickStock("bulk", ECONOMY.stockBulkCost, activeShop.morning.stockFbBulk, MORNING.STOCK_BULK); } });
 
     doc.getElementById("continue-button")?.setProperties({
       onClick: function () {
@@ -1366,30 +1399,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ2Replying = false;
 
   whenPanelReady(gusQ2Panel, function (doc) {
-    const beatQ = doc.getElementById("beat-q");
-    const beatReply = doc.getElementById("beat-reply");
-    const replyText = doc.getElementById("reply-text");
-    beatQ?.setProperties({ display: "flex" });
-    beatReply?.setProperties({ display: "none" });
-
-    let answered = false; // only the first tap counts
-    function answer(isBest: boolean, opener: string) {
-      if (answered) return;
-      answered = true;
-      sfxCoin();
-      const instinctGain = isBest ? SMARTS_BEST : SMARTS_OK;
-      updateScore("instinct", instinctGain);
-      const lesson = activeShop.midday.gusLesson;
-      replyText?.setProperties({ text: opener + " " + lesson });
-      doc.getElementById("meter-change")?.setProperties({ text: "Owner's Instinct  +" + instinctGain });
-      beatQ?.setProperties({ display: "none" });
-      beatReply?.setProperties({ display: "flex" });
-      gusQ2Replying = true;
-    }
-
-    doc.getElementById("answer-a")?.setProperties({ onClick: function () { answer(true, "Exactly right!"); } });
-    doc.getElementById("answer-b")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
-    doc.getElementById("answer-c")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
+    wireGusAnswers(doc, function () { return gus2Order; }, function (v) { gusQ2Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1461,9 +1471,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     // Holding steady with a thank-you treat costs a little cash; matching or
     // ignoring the rival costs nothing now (matching shows up in weaker sales).
-    function pickRival(cost: number, d: { instinct: number; profit: number }) {
+    let rivalPickFb = "";
+    function pickRival(cost: number, fb: string, d: { instinct: number; profit: number }) {
       if (rivalPicked) return;
       rivalPicked = true;
+      rivalPickFb = fb;
       updateScore("instinct", d.instinct);
       updateScore("profit", d.profit);
       totals.instinct += d.instinct;
@@ -1473,13 +1485,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       beatRival?.setProperties({ display: "none" });
       beatComplaint?.setProperties({ display: "flex" });
     }
-    doc.getElementById("rival-hold")?.setProperties({ onClick: function () { pickRival(ECONOMY.rivalPromoCost, MIDDAY.RIVAL_HOLD); } });
-    doc.getElementById("rival-match")?.setProperties({ onClick: function () { pickRival(0, MIDDAY.RIVAL_MATCH); } });
-    doc.getElementById("rival-ignore")?.setProperties({ onClick: function () { pickRival(0, MIDDAY.RIVAL_IGNORE); } });
+    doc.getElementById("rival-hold")?.setProperties({ onClick: function () { pickRival(ECONOMY.rivalPromoCost, activeShop.midday.rivalFbHold, MIDDAY.RIVAL_HOLD); } });
+    doc.getElementById("rival-match")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbMatch, MIDDAY.RIVAL_MATCH); } });
+    doc.getElementById("rival-ignore")?.setProperties({ onClick: function () { pickRival(0, activeShop.midday.rivalFbIgnore, MIDDAY.RIVAL_IGNORE); } });
 
     // A no-charge replacement costs real cash now; the afternoon crowd then rolls
     // in with the day's second sales tick, sized by the morning's price + stock.
-    function pickComplaint(cost: number, d: { satisfaction: number; profit: number }) {
+    function pickComplaint(cost: number, fb: string, d: { satisfaction: number; profit: number }) {
       if (complaintPicked) return;
       complaintPicked = true;
       updateScore("satisfaction", d.satisfaction);
@@ -1491,15 +1503,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       const afternoon = computeRush(ECONOMY.afternoonBase);
       earn(afternoon);
       doneText?.setProperties({ text: activeShop.midday.doneText });
+      doc.getElementById("recap-a")?.setProperties({ text: rivalPickFb, display: "flex" });
+      doc.getElementById("recap-b")?.setProperties({ text: fb, display: "flex" });
       revenueLine?.setProperties({ text: activeShop.economy.afternoonRushLabel + " $" + afternoon + "!", display: "flex" });
       showMeterChanges(doc, totals.satisfaction, totals.profit, totals.instinct);
       beatComplaint?.setProperties({ display: "none" });
       beatDone?.setProperties({ display: "flex" });
       stage2ShowingOutcome = true;
     }
-    doc.getElementById("comp-free")?.setProperties({ onClick: function () { pickComplaint(ECONOMY.complaintFreeCost, MIDDAY.COMPLAINT_FREE); } });
-    doc.getElementById("comp-discount")?.setProperties({ onClick: function () { pickComplaint(0, MIDDAY.COMPLAINT_DISCOUNT); } });
-    doc.getElementById("comp-firm")?.setProperties({ onClick: function () { pickComplaint(0, MIDDAY.COMPLAINT_FIRM); } });
+    doc.getElementById("comp-free")?.setProperties({ onClick: function () { pickComplaint(ECONOMY.complaintFreeCost, activeShop.midday.compFbFree, MIDDAY.COMPLAINT_FREE); } });
+    doc.getElementById("comp-discount")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbDiscount, MIDDAY.COMPLAINT_DISCOUNT); } });
+    doc.getElementById("comp-firm")?.setProperties({ onClick: function () { pickComplaint(0, activeShop.midday.compFbFirm, MIDDAY.COMPLAINT_FIRM); } });
 
     doc.getElementById("continue-button")?.setProperties({
       onClick: function () {
@@ -1545,30 +1559,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   let gusQ3Replying = false;
 
   whenPanelReady(gusQ3Panel, function (doc) {
-    const beatQ = doc.getElementById("beat-q");
-    const beatReply = doc.getElementById("beat-reply");
-    const replyText = doc.getElementById("reply-text");
-    beatQ?.setProperties({ display: "flex" });
-    beatReply?.setProperties({ display: "none" });
-
-    let answered = false; // only the first tap counts
-    function answer(isBest: boolean, opener: string) {
-      if (answered) return;
-      answered = true;
-      sfxCoin();
-      const instinctGain = isBest ? SMARTS_BEST : SMARTS_OK;
-      updateScore("instinct", instinctGain);
-      const lesson = activeShop.afternoon.gusLesson;
-      replyText?.setProperties({ text: opener + " " + lesson });
-      doc.getElementById("meter-change")?.setProperties({ text: "Owner's Instinct  +" + instinctGain });
-      beatQ?.setProperties({ display: "none" });
-      beatReply?.setProperties({ display: "flex" });
-      gusQ3Replying = true;
-    }
-
-    doc.getElementById("answer-a")?.setProperties({ onClick: function () { answer(true, "Exactly right!"); } });
-    doc.getElementById("answer-b")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
-    doc.getElementById("answer-c")?.setProperties({ onClick: function () { answer(false, "Good guess! Here is the thing."); } });
+    wireGusAnswers(doc, function () { return gus3Order; }, function (v) { gusQ3Replying = v; });
 
     doc.getElementById("got-it-button")?.setProperties({
       onClick: function () {
@@ -1637,9 +1628,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     // Leftovers: donating gives no cash (but happy customers), a markdown brings
     // in a little cash, tossing gets nothing back.
-    function pickStock(gain: number, d: { satisfaction: number; profit: number }) {
+    let leftoverPickFb = "";
+    function pickStock(gain: number, fb: string, d: { satisfaction: number; profit: number }) {
       if (stockPicked) return;
       stockPicked = true;
+      leftoverPickFb = fb;
       updateScore("satisfaction", d.satisfaction);
       updateScore("profit", d.profit);
       totals.satisfaction += d.satisfaction;
@@ -1650,13 +1643,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       beatStock?.setProperties({ display: "none" });
       beatOrder?.setProperties({ display: "flex" });
     }
-    doc.getElementById("close-donate")?.setProperties({ onClick: function () { pickStock(0, AFTERNOON.CLOSE_DONATE); } });
-    doc.getElementById("close-markdown")?.setProperties({ onClick: function () { pickStock(ECONOMY.leftoverMarkdownGain, AFTERNOON.CLOSE_MARKDOWN); } });
-    doc.getElementById("close-toss")?.setProperties({ onClick: function () { pickStock(0, AFTERNOON.CLOSE_TOSS); } });
+    doc.getElementById("close-donate")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbDonate, AFTERNOON.CLOSE_DONATE); } });
+    doc.getElementById("close-markdown")?.setProperties({ onClick: function () { pickStock(ECONOMY.leftoverMarkdownGain, activeShop.afternoon.leftFbMarkdown, AFTERNOON.CLOSE_MARKDOWN); } });
+    doc.getElementById("close-toss")?.setProperties({ onClick: function () { pickStock(0, activeShop.afternoon.leftFbToss, AFTERNOON.CLOSE_TOSS); } });
 
     // The big future order books a deposit into the register now — bigger if you
     // quoted premium, smaller if you quoted a friendly rate.
-    function pickOrder(deposit: number, d: { profit: number; satisfaction: number }) {
+    function pickOrder(deposit: number, fb: string, d: { profit: number; satisfaction: number }) {
       if (orderPicked) return;
       orderPicked = true;
       updateScore("profit", d.profit);
@@ -1665,13 +1658,15 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       totals.satisfaction += d.satisfaction;
       earn(deposit);
       doneText?.setProperties({ text: activeShop.afternoon.doneText });
+      doc.getElementById("recap-a")?.setProperties({ text: leftoverPickFb, display: "flex" });
+      doc.getElementById("recap-b")?.setProperties({ text: fb, display: "flex" });
       showMeterChanges(doc, totals.satisfaction, totals.profit, totals.instinct);
       beatOrder?.setProperties({ display: "none" });
       beatDone?.setProperties({ display: "flex" });
     }
-    doc.getElementById("order-premium")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositPremium, AFTERNOON.ORDER_PREMIUM); } });
-    doc.getElementById("order-fair")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFair, AFTERNOON.ORDER_FAIR); } });
-    doc.getElementById("order-friendly")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFriendly, AFTERNOON.ORDER_FRIENDLY); } });
+    doc.getElementById("order-premium")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositPremium, activeShop.afternoon.orderFbP, AFTERNOON.ORDER_PREMIUM); } });
+    doc.getElementById("order-fair")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFair, activeShop.afternoon.orderFbF, AFTERNOON.ORDER_FAIR); } });
+    doc.getElementById("order-friendly")?.setProperties({ onClick: function () { pickOrder(ECONOMY.orderDepositFriendly, activeShop.afternoon.orderFbFriendly, AFTERNOON.ORDER_FRIENDLY); } });
 
     doc.getElementById("continue-button")?.setProperties({
       onClick: function () {
@@ -1919,34 +1914,40 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       });
     });
 
+    // Shuffle each owner question once, here at shop pick, so the best answer
+    // lands on a random button this playthrough. The same order drives the click
+    // handlers (via gusNOrder), so labels and scoring never drift apart.
     whenPanelReady(gusQ1Panel, function (doc) {
       const q = pack.morning;
+      gus1Order = shuffleOpts(buildGusOpts(q));
       doc.getElementById("eyebrow-asks")?.setProperties({ text: pack.ownerName.toUpperCase() + " ASKS" });
       doc.getElementById("eyebrow-says")?.setProperties({ text: pack.ownerName.toUpperCase() + " SAYS" });
       doc.getElementById("q-text")?.setProperties({ text: q.gusQ });
-      doc.getElementById("answer-a-label")?.setProperties({ text: q.gusBest });
-      doc.getElementById("answer-b-label")?.setProperties({ text: q.gusB });
-      doc.getElementById("answer-c-label")?.setProperties({ text: q.gusC });
+      doc.getElementById("answer-a-label")?.setProperties({ text: gus1Order[0].label });
+      doc.getElementById("answer-b-label")?.setProperties({ text: gus1Order[1].label });
+      doc.getElementById("answer-c-label")?.setProperties({ text: gus1Order[2].label });
     });
 
     whenPanelReady(gusQ2Panel, function (doc) {
       const q = pack.midday;
+      gus2Order = shuffleOpts(buildGusOpts(q));
       doc.getElementById("eyebrow-asks")?.setProperties({ text: pack.ownerName.toUpperCase() + " ASKS" });
       doc.getElementById("eyebrow-says")?.setProperties({ text: pack.ownerName.toUpperCase() + " SAYS" });
       doc.getElementById("q-text")?.setProperties({ text: q.gusQ });
-      doc.getElementById("answer-a-label")?.setProperties({ text: q.gusBest });
-      doc.getElementById("answer-b-label")?.setProperties({ text: q.gusB });
-      doc.getElementById("answer-c-label")?.setProperties({ text: q.gusC });
+      doc.getElementById("answer-a-label")?.setProperties({ text: gus2Order[0].label });
+      doc.getElementById("answer-b-label")?.setProperties({ text: gus2Order[1].label });
+      doc.getElementById("answer-c-label")?.setProperties({ text: gus2Order[2].label });
     });
 
     whenPanelReady(gusQ3Panel, function (doc) {
       const q = pack.afternoon;
+      gus3Order = shuffleOpts(buildGusOpts(q));
       doc.getElementById("eyebrow-asks")?.setProperties({ text: pack.ownerName.toUpperCase() + " ASKS" });
       doc.getElementById("eyebrow-says")?.setProperties({ text: pack.ownerName.toUpperCase() + " SAYS" });
       doc.getElementById("q-text")?.setProperties({ text: q.gusQ });
-      doc.getElementById("answer-a-label")?.setProperties({ text: q.gusBest });
-      doc.getElementById("answer-b-label")?.setProperties({ text: q.gusB });
-      doc.getElementById("answer-c-label")?.setProperties({ text: q.gusC });
+      doc.getElementById("answer-a-label")?.setProperties({ text: gus3Order[0].label });
+      doc.getElementById("answer-b-label")?.setProperties({ text: gus3Order[1].label });
+      doc.getElementById("answer-c-label")?.setProperties({ text: gus3Order[2].label });
     });
 
     whenPanelReady(stage1MoneyPanel, function (doc) {
