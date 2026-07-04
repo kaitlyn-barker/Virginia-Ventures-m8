@@ -48,11 +48,11 @@
   <div id="beat-done" class="beat">
     <span class="eyebrow">DAY DONE</span>
     <span id="done-text" class="ready-text">...</span>
-    <span id="recap-a" class="recap"></span>
-    <span id="recap-b" class="recap"></span>
-    <span id="change-sat" class="meter-change"></span>
-    <span id="change-profit" class="meter-change"></span>
-    <span id="change-instinct" class="meter-change"></span>
+    <span id="recap-a" class="recap">.</span>
+    <span id="recap-b" class="recap">.</span>
+    <span id="change-sat" class="meter-change">.</span>
+    <span id="change-profit" class="meter-change">.</span>
+    <span id="change-instinct" class="meter-change">.</span>
     <div id="continue-button" class="continue-button"><span class="continue-label">See Your Day</span></div>
   </div>
 </div>

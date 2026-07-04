@@ -33,7 +33,7 @@
   <div id="beat-reply" class="beat">
     <span id="eyebrow-says" class="eyebrow">MS. DELIA SAYS</span>
     <span id="reply-text" class="reply-text">...</span>
-    <span id="meter-change" class="meter-change"></span>
+    <span id="meter-change" class="meter-change">.</span>
     <div id="got-it-button" class="got-it-button">
       <span class="got-it-label">Got It</span>
     </div>

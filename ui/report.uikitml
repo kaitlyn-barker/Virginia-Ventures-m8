@@ -116,25 +116,25 @@
 
   <div id="page-recap" class="page-recap">
     <span class="eyebrow">EVERY CHOICE YOU MADE</span>
-    <span id="recap-line-0" class="recap-line"></span>
-    <span id="recap-line-1" class="recap-line"></span>
-    <span id="recap-line-2" class="recap-line"></span>
-    <span id="recap-line-3" class="recap-line"></span>
-    <span id="recap-line-4" class="recap-line"></span>
-    <span id="recap-line-5" class="recap-line"></span>
-    <span id="recap-line-6" class="recap-line"></span>
-    <span id="recap-line-7" class="recap-line"></span>
-    <span id="recap-line-8" class="recap-line"></span>
-    <span id="recap-line-9" class="recap-line"></span>
-    <span id="recap-line-10" class="recap-line"></span>
-    <span id="recap-line-11" class="recap-line"></span>
-    <span id="recap-line-12" class="recap-line"></span>
-    <span id="recap-line-13" class="recap-line"></span>
+    <span id="recap-line-0" class="recap-line">.</span>
+    <span id="recap-line-1" class="recap-line">.</span>
+    <span id="recap-line-2" class="recap-line">.</span>
+    <span id="recap-line-3" class="recap-line">.</span>
+    <span id="recap-line-4" class="recap-line">.</span>
+    <span id="recap-line-5" class="recap-line">.</span>
+    <span id="recap-line-6" class="recap-line">.</span>
+    <span id="recap-line-7" class="recap-line">.</span>
+    <span id="recap-line-8" class="recap-line">.</span>
+    <span id="recap-line-9" class="recap-line">.</span>
+    <span id="recap-line-10" class="recap-line">.</span>
+    <span id="recap-line-11" class="recap-line">.</span>
+    <span id="recap-line-12" class="recap-line">.</span>
+    <span id="recap-line-13" class="recap-line">.</span>
 
     <span class="think-title">THINK ABOUT...</span>
-    <span id="think-line-0" class="think-line"></span>
-    <span id="think-line-1" class="think-line"></span>
-    <span id="think-line-2" class="think-line"></span>
+    <span id="think-line-0" class="think-line">.</span>
+    <span id="think-line-1" class="think-line">.</span>
+    <span id="think-line-2" class="think-line">.</span>
 
     <div id="recap-back-button" class="play-again-button">
       <span class="play-again-label">Back</span>
