@@ -821,6 +821,23 @@ function buildGus(world: any, shop: ShopId) {
   }, 33);
 }
 
+// A reusable gold "!" beacon that the game floats over whatever station is the
+// current target (the counter, the shop floor), generalizing the wave-you-over
+// marker that used to live only above the owner. index.ts positions it, bobs it,
+// and shows/hides it based on where you need to go next. Starts hidden.
+export function buildBeacon(world: any) {
+  const g = new Group();
+  const bar = meshBox(0.12, 0.46, 0.12, "#c8962a");
+  bar.position.set(0, 0.3, 0);
+  g.add(bar);
+  const dot = meshBox(0.12, 0.12, 0.12, "#c8962a");
+  dot.position.set(0, 0.0, 0);
+  g.add(dot);
+  const e = world.createTransformEntity(g);
+  e.object3D!.visible = false;
+  return e;
+}
+
 // ============================================================================
 // SHOP FURNITURE  —  the two fixtures the panels anchor to. The sales counter
 // (with its little register) stands at the bank station, where the Morning and

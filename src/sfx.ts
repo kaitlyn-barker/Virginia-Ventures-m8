@@ -1,5 +1,5 @@
 // ============================================================================
-// sfx.ts  —  synthesized sound effects for Money Moves (no audio files needed)
+// sfx.ts  —  synthesized sound effects for Boss for a Day (no audio files needed)
 // Tiny WebAudio jingles, the same approach as Market Harvest. They need no
 // files and keep playing inside a WebXR session. The AudioContext can only
 // start after the first interaction, so we create it lazily on the first play.

@@ -1,5 +1,5 @@
 // ============================================================================
-// Money Moves: Your Financial Literacy
+// Boss for a Day — Virginia Ventures Module 8
 // FOUNDATION SHELL  —  rebuilt to match the Market Harvest (m4) house style.
 // This file sets up:
 //   1. The economic CONSTANTS (kept; the stages will read these)
@@ -25,7 +25,7 @@ import {
   Box3,
 } from "@iwsdk/core";
 
-import { buildBaseWorld, buildShopProps, setStageLook, GUS_SPOT, STATIONS } from "./environment";
+import { buildBaseWorld, buildShopProps, setStageLook, buildBeacon, GUS_SPOT, STATIONS } from "./environment";
 import { setActiveShop, activeShop, SHOPS, ShopId, ShopPack, ChoiceOption, ShopDecision, ECONOMY } from "./shops";
 import { sfxStage, sfxClick, sfxCoin, sfxDown, sfxFanfare } from "./sfx";
 
@@ -203,6 +203,24 @@ function updateHudClock(activeIndex: number) {
     else if (i < activeIndex) { seg.style.color = TEXT_GREEN; seg.style.fontWeight = "700"; }
     else { seg.style.color = "#c3b790"; seg.style.fontWeight = "700"; }
   }
+}
+
+// Read-aloud accessibility. When the HUD toggle is on, objective lines and the
+// owner's replies are spoken with the browser's speech synthesis — a big help
+// for 5th graders still building reading fluency. Off by default; the toggle
+// click is the user gesture browsers require before speech can start.
+let ttsEnabled = false;
+let ttsButton: HTMLElement | null = null;
+function speak(text: string) {
+  if (!ttsEnabled || !text) return;
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel(); // never let lines pile up on top of each other
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    synth.speak(u);
+  } catch { /* speech synthesis unavailable */ }
 }
 
 function makeHudMeter(label: string, barColor: string, textColor: string) {
@@ -391,6 +409,33 @@ function createHUD() {
 
   hud.appendChild(buildClockRow());
 
+  // Read-aloud toggle. The HUD ignores pointer events, so this button opts back
+  // in with pointerEvents = "auto" and is the click that unlocks speech.
+  ttsButton = document.createElement("button");
+  ttsButton.textContent = "🔊 Read aloud: Off";
+  ttsButton.style.pointerEvents = "auto";
+  ttsButton.style.cursor = "pointer";
+  ttsButton.style.width = "100%";
+  ttsButton.style.margin = "0 0 9px";
+  ttsButton.style.padding = "4px 8px";
+  ttsButton.style.fontSize = "12px";
+  ttsButton.style.fontWeight = "700";
+  ttsButton.style.color = COLOR_NAVY;
+  ttsButton.style.background = "#fbf3dd";
+  ttsButton.style.border = "1px solid #e8d6a8";
+  ttsButton.style.borderRadius = "8px";
+  ttsButton.onclick = function () {
+    ttsEnabled = !ttsEnabled;
+    if (ttsButton) ttsButton.textContent = ttsEnabled ? "🔊 Read aloud: On" : "🔊 Read aloud: Off";
+    if (ttsEnabled) {
+      const g = hudObjective && hudObjective.textContent ? hudObjective.textContent : "Read aloud is on.";
+      speak(g);
+    } else {
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch { /* ignore */ }
+    }
+  };
+  hud.appendChild(ttsButton);
+
   const moneyRow = buildMoneyRow();
   hud.appendChild(moneyRow);
 
@@ -520,6 +565,7 @@ function setObjective(text: string) {
     hudObjective.textContent = text ? "Goal: " + text : "";
     hudObjective.style.display = text ? "block" : "none";
   }
+  speak(text);
   console.log("[OBJECTIVE] " + text);
 }
 
@@ -827,6 +873,31 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   browserLookLoop();
 
   // --------------------------------------------------------------------------
+  // ONE GAME-LOOP TICK
+  // Every proximity check, the panel-on-top pass, the pointer guard, and the
+  // dashboard sync used to be its own setInterval — ~9 timers all firing at 30Hz.
+  // They are now registered as frame tasks and driven by ONE interval, which is
+  // easier on Quest thermals over a 25-minute session. Each task still early-
+  // returns when its stage is done, so finished work costs almost nothing. A task
+  // that throws is isolated so it can never freeze the rest of the loop.
+  // setInterval (not requestAnimationFrame) because rAF pauses in a headset.
+  // --------------------------------------------------------------------------
+  const frameTasks: Array<() => void> = [];
+  function tick(fn: () => void, _intervalIgnored?: number) {
+    frameTasks.push(fn);
+  }
+  function runFrameTasks() {
+    for (let i = 0; i < frameTasks.length; i = i + 1) {
+      try {
+        frameTasks[i]();
+      } catch (e) {
+        console.warn("[frame task] error", e);
+      }
+    }
+  }
+  setInterval(runFrameTasks, 33);
+
+  // --------------------------------------------------------------------------
   // HIDDEN-PANEL CLICK GUARD
   // IWSDK keeps every panel alive and just toggles visibility. Pointer ray tests
   // do NOT skip invisible meshes, so a hidden button can sit in front of a real
@@ -857,7 +928,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       }
     }
   }
-  setInterval(hitTestVisibilityLoop, 33);
+  tick(hitTestVisibilityLoop);
 
   // --------------------------------------------------------------------------
   // PANEL PRESENTATION
@@ -958,10 +1029,45 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // behind Gus or a building would then show its boxes but hide its words. This
   // keeps the WHOLE visible panel on top, frame after frame.
   const storyPanels: any[] = [];
-  setInterval(function () {
+  tick(function () {
     for (const p of storyPanels) {
       if (p.object3D && p.object3D.visible) applyPanelOnTop(p);
     }
+  }, 33);
+
+  // --------------------------------------------------------------------------
+  // WAYFINDING BEACON
+  // A gold "!" that floats over the station you need to reach next (the counter,
+  // the shop floor), so the objective line is not the only guide. setBeacon aims
+  // it; the frame task bobs it and hides it once you have walked up (the panel
+  // then takes over). Finding the OWNER is still handled by the owner's own "!".
+  // --------------------------------------------------------------------------
+  const beaconEntity = buildBeacon(world);
+  let beaconTarget: { x: number; z: number } | null = null;
+  const BEACON_HIDE_RADIUS = 3.2; // once this close, the station panel opens
+  const _beaconCam = new Vector3();
+  let _beaconT = 0;
+  function setBeacon(t: { x: number; z: number } | null) {
+    beaconTarget = t;
+  }
+  tick(function () {
+    const o3d = beaconEntity.object3D;
+    if (!o3d) return;
+    const cam = world.camera;
+    if (!beaconTarget || !cam) {
+      if (o3d.visible) o3d.visible = false;
+      return;
+    }
+    cam.getWorldPosition(_beaconCam);
+    const dx = _beaconCam.x - beaconTarget.x;
+    const dz = _beaconCam.z - beaconTarget.z;
+    if (Math.sqrt(dx * dx + dz * dz) <= BEACON_HIDE_RADIUS) {
+      if (o3d.visible) o3d.visible = false;
+      return;
+    }
+    _beaconT = _beaconT + 1;
+    o3d.position.set(beaconTarget.x, 2.5 + Math.sin(_beaconT * 0.12) * 0.09, beaconTarget.z);
+    o3d.visible = true;
   }, 33);
 
   // --------------------------------------------------------------------------
@@ -1020,7 +1126,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   const _dashTarget = new Vector3();
   const _dashWorldUp = new Vector3(0, 1, 0);
 
-  setInterval(function () {
+  tick(function () {
     const o3d = dashboardPanel.object3D;
     if (!o3d) return;
     // Desktop uses the corner overlay; keep the 3D one hidden there.
@@ -1063,6 +1169,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // A panel's UI document loads over a frame or two. Run wiring once it is ready.
   function whenPanelReady(entity: any, callback: (doc: any) => void) {
+    let attempts = 0;
+    let warned = false;
     const check = function () {
       if (entity.hasComponent(PanelDocument)) {
         const doc = entity.getValue(PanelDocument, "document");
@@ -1071,6 +1179,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
           return;
         }
       }
+      attempts = attempts + 1;
+      // ~60 fps, so 600 frames ≈ 10s. A panel whose JSON never loads would poll
+      // forever and its stage would hang with no clue why — warn once instead,
+      // then keep trying a while longer before giving up so we don't rAF-spin.
+      if (attempts === 600 && !warned) {
+        warned = true;
+        let cfg = "unknown panel";
+        try { cfg = entity.getValue(PanelUI, "config") || cfg; } catch { /* best effort */ }
+        console.warn("[whenPanelReady] " + cfg + " not ready after ~10s — its stage may be stuck; check that the panel JSON loaded.");
+      }
+      if (attempts > 1800) return; // ~30s: give up rather than poll indefinitely
       requestAnimationFrame(check);
     };
     check();
@@ -1110,7 +1229,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   });
 
   // How to play: five steps, Back / Next, ending by entering Main Street.
-  const WELCOME_STEPS = 5;
+  const WELCOME_STEPS = 3;
   let welcomeStep = 1;
   whenPanelReady(welcomePanel, function (doc) {
     const DISABLED_BG = "#c9c2b5";
@@ -1271,6 +1390,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       updateScore("instinct", opt.score);
       const opener = opt.isBest ? "Exactly right!" : "Good try.";
       replyText?.setProperties({ text: opener + " " + opt.fb });
+      speak(opener + " " + opt.fb);
       meterChange?.setProperties({ text: "Owner's Instinct  +" + opt.score });
       recordDecision(title, opt.isBest ? "Chose the best answer" : "Missed the best answer", opt.fb, opt.score);
       beatQ?.setProperties({ display: "none" });
@@ -1302,13 +1422,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         gusQ1Replying = false;
         gusQ1Panel.object3D!.visible = false;
         setObjective(activeShop.goals.morningCounter);
+        setBeacon(STATIONS.bank); // point the way to the counter
       },
     });
   });
 
   // Watch how close the player is to Gus, and open the question in Stage 1.
   const gusCamPos = new Vector3();
-  setInterval(function () {
+  tick(function () {
     if (gusQ1Done) {
       gusQ1Panel.object3D!.visible = false;
       return;
@@ -1478,6 +1599,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         stage1MoneyDone = true;
         stage1ShowingOutcome = false;
         stage1MoneyPanel.object3D!.visible = false;
+        setBeacon(null);
         showPhase(PHASE_MIDDAY);
         setStageLook(world, "midday");
         setObjective(activeShop.goals.middayFind);
@@ -1488,7 +1610,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // Open the money plan at the Bank, once you have talked with Gus.
   const bankCamPos = new Vector3();
   const STAGE1_BANK_RADIUS = 3.0;
-  setInterval(function () {
+  tick(function () {
     if (stage1MoneyDone) {
       stage1MoneyPanel.object3D!.visible = false;
       return;
@@ -1538,12 +1660,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         gusQ2Replying = false;
         gusQ2Panel.object3D!.visible = false;
         setObjective(activeShop.goals.middayFloor);
+        setBeacon(STATIONS.business); // point the way to the shop floor
       },
     });
   });
 
   const gusQ2CamPos = new Vector3();
-  setInterval(function () {
+  tick(function () {
     if (gusQ2Done) { gusQ2Panel.object3D!.visible = false; return; }
     if (currentPhase !== PHASE_MIDDAY) { gusQ2Panel.object3D!.visible = false; return; }
     if (gusQ2Replying) { showPanel(gusQ2Panel); return; }
@@ -1661,6 +1784,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         stage2Done = true;
         stage2ShowingOutcome = false;
         stage2Panel.object3D!.visible = false;
+        setBeacon(null);
         showPhase(PHASE_AFTERNOON);
         setStageLook(world, "afternoon");
         setObjective(activeShop.goals.afternoonFind);
@@ -1670,7 +1794,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Open the invest board at the Business lot, once you have talked with Gus.
   const bizCamPos = new Vector3();
-  setInterval(function () {
+  tick(function () {
     if (stage2Done) { stage2Panel.object3D!.visible = false; return; }
     if (currentPhase !== PHASE_MIDDAY) { stage2Panel.object3D!.visible = false; return; }
     if (!gusQ2Done) { stage2Panel.object3D!.visible = false; return; }
@@ -1708,12 +1832,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         gusQ3Replying = false;
         gusQ3Panel.object3D!.visible = false;
         setObjective(activeShop.goals.closeCounter);
+        setBeacon(STATIONS.bank); // point the way back to the counter
       },
     });
   });
 
   const gusQ3CamPos = new Vector3();
-  setInterval(function () {
+  tick(function () {
     if (gusQ3Done) { gusQ3Panel.object3D!.visible = false; return; }
     if (currentPhase !== PHASE_AFTERNOON) { gusQ3Panel.object3D!.visible = false; return; }
     if (gusQ3Replying) { showPanel(gusQ3Panel); return; }
@@ -1828,6 +1953,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         stage3Done = true;
         stage3Engaged = false;
         stage3Panel.object3D!.visible = false;
+        setBeacon(null);
         showReport();
       },
     });
@@ -1835,7 +1961,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Open the spread board at the Bank, once you have talked with Gus.
   const bank3CamPos = new Vector3();
-  setInterval(function () {
+  tick(function () {
     if (stage3Done) { stage3Panel.object3D!.visible = false; return; }
     if (currentPhase !== PHASE_AFTERNOON) { stage3Panel.object3D!.visible = false; return; }
     if (!gusQ3Done) { stage3Panel.object3D!.visible = false; return; }
@@ -2212,11 +2338,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       doc.getElementById("subtitle")?.setProperties({ text: pack.subtitle });
     });
     whenPanelReady(welcomePanel, function (doc) {
+      // Only the premise is per-shop now; the trimmed how-to-play cards are shared.
       doc.getElementById("welcome-premise")?.setProperties({ text: pack.premise });
-      doc.getElementById("talk-title")?.setProperties({ text: "2. Talk to " + pack.ownerName });
-      doc.getElementById("talk-body")?.setProperties({
-        text: pack.ownerName + " has run this shop for years and knows every trick of the trade. When the gold ! appears over them, walk over. They will ask you a quick question to sharpen your Owner's Instinct.",
-      });
     });
 
     // Shuffle each owner question once, here at shop pick, so the best answer
@@ -2315,7 +2438,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       doc.getElementById("welcome-panel")?.setProperties({ backgroundColor: t.panelBg, borderColor: t.panelBorder });
       doc.getElementById("welcome-eyebrow")?.setProperties({ color: t.ink });
       doc.getElementById("welcome-heading")?.setProperties({ color: t.ink });
-      for (const sid of ["step-1", "step-2", "step-3", "step-4", "step-5"]) {
+      for (const sid of ["step-1", "step-2", "step-3"]) {
         doc.getElementById(sid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder });
       }
       doc.getElementById("next-button")?.setProperties({ backgroundColor: t.accent });
@@ -2342,7 +2465,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       whenPanelReady(panel, function (doc) {
         doc.getElementById("game-panel")?.setProperties({ backgroundColor: t.panelBg, borderColor: t.panelBorder });
         for (const aid of ["answer-a", "answer-b", "answer-c"]) {
-          doc.getElementById(aid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder });
+          doc.getElementById(aid)?.setProperties({ backgroundColor: t.boxBg, borderColor: t.boxBorder, hover: { backgroundColor: t.boxBorder } });
         }
         for (const tid of ["q-text", "answer-a-label", "answer-b-label", "answer-c-label", "reply-text"]) {
           doc.getElementById(tid)?.setProperties({ color: t.ink });

@@ -22,27 +22,19 @@
   <div class="step-area">
     <div id="step-1" class="step">
       <span class="step-title">Welcome, Boss!</span>
-      <span id="welcome-premise" class="step-body">Ms. Delia owns Sweet Capital Bakery on Cary Street in Richmond, and today she is handing you the apron. For one day you are the boss: serve customers, spend, save, and grow the shop from morning to close. Here is how it works.</span>
+      <span id="welcome-premise" class="step-body">The owner is off today and left you in charge. For one day you run the shop: set prices, help customers, and make the big calls from morning to close.</span>
     </div>
     <div id="step-2" class="step">
-      <span class="step-title">1. Get Around</span>
-      <span class="step-body">Walk with W A S D or the arrow keys. Hold the RIGHT mouse button and drag to look. In a headset, use the thumbstick. Stroll left and right to explore the shop and the street outside.</span>
+      <span id="talk-title" class="step-title">Get Moving</span>
+      <span id="talk-body" class="step-body">Walk with W A S D or the arrow keys, and hold the RIGHT mouse button to look around (thumbstick in a headset). See a glowing gold ! ? That is your next stop — just walk right up to it.</span>
     </div>
     <div id="step-3" class="step">
-      <span id="talk-title" class="step-title">2. Talk to Ms. Delia</span>
-      <span id="talk-body" class="step-body">Ms. Delia has run this bakery for years and knows every trick of the trade. When a gold ! pops up over her, walk over. She will ask you a quick question to sharpen your Owner's Instinct.</span>
-    </div>
-    <div id="step-4" class="step">
-      <span class="step-title">3. Make Your Choices</span>
-      <span class="step-body">At each part of the day you decide how to spend, save, and grow the shop's money. Every choice moves your meters, so take a moment to think it through.</span>
-    </div>
-    <div id="step-5" class="step">
-      <span class="step-title">4. Watch Your Meters</span>
-      <span class="step-body">Keep an eye on Customer Satisfaction, Business Profit, and Owner's Instinct. Keeping all three high makes you a five-star boss. Ready?</span>
+      <span class="step-title">Run Your Day</span>
+      <span class="step-body">Each stop is a choice. Every choice moves your money and your three meters: Customer Satisfaction, Business Profit, and Owner's Instinct. Keep all three high to be a five-star boss. Ready?</span>
     </div>
   </div>
 
-  <span id="step-indicator" class="step-indicator">Step 1 of 5</span>
+  <span id="step-indicator" class="step-indicator">Step 1 of 3</span>
 
   <div class="button-row">
     <div id="back-button" class="back-button">
