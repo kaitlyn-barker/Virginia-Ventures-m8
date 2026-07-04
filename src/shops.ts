@@ -170,7 +170,7 @@ const BAKERY: ShopPack = {
   subtitle: "A Day at Sweet Capital Bakery",
   premise: "The owner of Sweet Capital Bakery, on Cary Street in Richmond, is taking the day off and left you in charge. For one day you will set prices, help customers, and make big calls to keep the shop thriving.",
   ownerName: "Ms. Delia",
-  ownerGreeting: "Welcome to Sweet Capital Bakery! I'm Ms. Delia. The shop is yours today. Come find me whenever you want to talk a decision through.",
+  ownerGreeting: "Welcome to Sweet Capital Bakery! I'm Ms. Delia. The shop is yours today.",
   theme: {
     panelBg: "#f3e9d2", panelBorder: "#5b3a24", ink: "#5b3a24",
     accent: "#d98a8f", accentInk: "#5b3a24", boxBg: "#fdf3dd", boxBorder: "#e3a9a2",
@@ -308,7 +308,7 @@ const SURF: ShopPack = {
   subtitle: "A Day at Atlantic Avenue Surf Co.",
   premise: "The owner of Atlantic Avenue Surf Co., right on the Virginia Beach boardwalk, is taking the day off and left you in charge. For one day you will set prices, help customers, and make big calls to keep the shop riding high.",
   ownerName: "Mr. Reyes",
-  ownerGreeting: "Welcome to Atlantic Avenue Surf Co.! I'm Mr. Reyes. The shop is yours today. Catch me whenever you want to talk a decision through.",
+  ownerGreeting: "Welcome to Atlantic Avenue Surf Co.! I'm Mr. Reyes. The shop is yours today.",
   theme: {
     panelBg: "#e3f1f6", panelBorder: "#1e6f8e", ink: "#163f50",
     accent: "#2a8aa8", accentInk: "#ffffff", boxBg: "#d4e9f1", boxBorder: "#8fc4d6",
@@ -446,7 +446,7 @@ const REPAIR: ShopPack = {
   subtitle: "A Day at Clarendon Device Repair",
   premise: "The owner of Clarendon Device Repair, in the heart of Arlington, is taking the day off and left you in charge. For one day you will set prices, help customers, and make big calls to keep the shop running.",
   ownerName: "Ms. Okafor",
-  ownerGreeting: "Welcome to Clarendon Device Repair! I'm Ms. Okafor. The shop is yours today. Find me whenever you want to talk a decision through.",
+  ownerGreeting: "Welcome to Clarendon Device Repair! I'm Ms. Okafor. The shop is yours today.",
   theme: {
     panelBg: "#e9edf1", panelBorder: "#445a72", ink: "#29384a",
     accent: "#46708c", accentInk: "#ffffff", boxBg: "#dce3ea", boxBorder: "#b3c2d0",

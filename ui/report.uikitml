@@ -46,8 +46,6 @@
   .btn-secondary-label { font-size: 3.6; font-weight: bold; color: #1F3A5F; word-break: keep-all; }
   .play-again-button { display: flex; align-items: center; justify-content: center; margin-top: 3; padding-top: 2.6; padding-bottom: 2.6; padding-left: 9; padding-right: 9; background-color: #c8962a; border-radius: 4; cursor: pointer; }
   .play-again-label { font-size: 4; font-weight: bold; color: #1F3A5F; word-break: keep-all; }
-  .day-toggle-button { display: flex; align-items: center; justify-content: center; margin-top: 2; padding-top: 2.4; padding-bottom: 2.4; padding-left: 9; padding-right: 9; background-color: #1F3A5F; border-radius: 4; cursor: pointer; }
-  .day-toggle-label { font-size: 3.8; font-weight: bold; color: #ffffff; word-break: keep-all; }
 
   .recap-line { font-size: 2.7; color: #1F3A5F; text-align: center; margin-top: 0.7; }
   .think-title { font-size: 2.7; font-weight: bold; color: #8a6118; letter-spacing: 1.5; text-align: center; margin-top: 2.5; }
@@ -111,9 +109,6 @@
     </div>
     <div id="play-again-button" class="play-again-button">
       <span id="play-again-label" class="play-again-label">Play Again</span>
-    </div>
-    <div id="day-toggle-button" class="day-toggle-button">
-      <span id="day-toggle-label" class="day-toggle-label">Try Day 2</span>
     </div>
   </div>
 

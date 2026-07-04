@@ -46,27 +46,6 @@ let stockTier = "";     // "fancy" | "mix" | "bulk" — set in the morning
 let flyerChosen = false; // true if the ad flyer growth move was bought
 let dealChosen = false;  // true if the bulk-supply deal growth move was bought
 
-// DAY 2 replay mode — a tighter-margins encore with a random surprise, so a
-// second run feels different and worth taking. The day number is stashed in
-// localStorage so "Try Day 2" can carry it across the Play Again reload.
-let dayNumber = 1;
-try {
-  if (localStorage.getItem("bossForADay:day") === "2") dayNumber = 2;
-} catch { /* storage blocked; stay on Day 1 */ }
-const isDay2 = dayNumber === 2;
-const DAY2_START_CASH = 110;      // a thinner register float than Day 1's 150
-const DAY2_REVENUE_FACTOR = 0.9;  // margins are tighter, so each rush earns less
-// A random midday surprise (positive or negative), because not everything a
-// real owner faces is a choice. Worded so it fits any of the three shops.
-const DAY2_SURPRISES = [
-  { text: "Surprise! A pipe burst overnight — the fix cost you $30.", cash: -30 },
-  { text: "A local reviewer loved the place and left a $40 tip!", cash: 40 },
-  { text: "Slow foot traffic today — you lost about $20 in sales.", cash: -20 },
-  { text: "You found $25 tucked in the old register drawer!", cash: 25 },
-  { text: "A supplier overcharged you last week and refunded $35.", cash: 35 },
-  { text: "A power flicker spoiled some stock — that cost you $28.", cash: -28 },
-];
-
 // Every choice the student makes is logged here as it happens, so the daily
 // report can recap the day, name the best call and the one to rethink, and hand
 // the whole run to a teacher (localStorage / clipboard / postMessage). score is
@@ -224,24 +203,6 @@ function updateHudClock(activeIndex: number) {
     else if (i < activeIndex) { seg.style.color = TEXT_GREEN; seg.style.fontWeight = "700"; }
     else { seg.style.color = "#c3b790"; seg.style.fontWeight = "700"; }
   }
-}
-
-// Read-aloud accessibility. When the HUD toggle is on, objective lines and the
-// owner's replies are spoken with the browser's speech synthesis — a big help
-// for 5th graders still building reading fluency. Off by default; the toggle
-// click is the user gesture browsers require before speech can start.
-let ttsEnabled = false;
-let ttsButton: HTMLElement | null = null;
-function speak(text: string) {
-  if (!ttsEnabled || !text) return;
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    synth.cancel(); // never let lines pile up on top of each other
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.95;
-    synth.speak(u);
-  } catch { /* speech synthesis unavailable */ }
 }
 
 function makeHudMeter(label: string, barColor: string, textColor: string) {
@@ -410,7 +371,7 @@ function createHUD() {
   header.style.marginBottom = "8px";
 
   const title = document.createElement("span");
-  title.textContent = isDay2 ? "Boss for a Day · Day 2" : "Boss for a Day";
+  title.textContent = "Boss for a Day";
   title.style.color = COLOR_NAVY;
   title.style.fontWeight = "800";
   title.style.fontSize = "15px";
@@ -429,33 +390,6 @@ function createHUD() {
   hud.appendChild(header);
 
   hud.appendChild(buildClockRow());
-
-  // Read-aloud toggle. The HUD ignores pointer events, so this button opts back
-  // in with pointerEvents = "auto" and is the click that unlocks speech.
-  ttsButton = document.createElement("button");
-  ttsButton.textContent = "🔊 Read aloud: Off";
-  ttsButton.style.pointerEvents = "auto";
-  ttsButton.style.cursor = "pointer";
-  ttsButton.style.width = "100%";
-  ttsButton.style.margin = "0 0 9px";
-  ttsButton.style.padding = "4px 8px";
-  ttsButton.style.fontSize = "12px";
-  ttsButton.style.fontWeight = "700";
-  ttsButton.style.color = COLOR_NAVY;
-  ttsButton.style.background = "#fbf3dd";
-  ttsButton.style.border = "1px solid #e8d6a8";
-  ttsButton.style.borderRadius = "8px";
-  ttsButton.onclick = function () {
-    ttsEnabled = !ttsEnabled;
-    if (ttsButton) ttsButton.textContent = ttsEnabled ? "🔊 Read aloud: On" : "🔊 Read aloud: Off";
-    if (ttsEnabled) {
-      const g = hudObjective && hudObjective.textContent ? hudObjective.textContent : "Read aloud is on.";
-      speak(g);
-    } else {
-      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch { /* ignore */ }
-    }
-  };
-  hud.appendChild(ttsButton);
 
   const moneyRow = buildMoneyRow();
   hud.appendChild(moneyRow);
@@ -586,7 +520,6 @@ function setObjective(text: string) {
     hudObjective.textContent = text ? "Goal: " + text : "";
     hudObjective.style.display = text ? "block" : "none";
   }
-  speak(text);
   console.log("[OBJECTIVE] " + text);
 }
 
@@ -719,7 +652,6 @@ function computeRush(base: number): number {
     : ECONOMY.stockMixFactor;
   let r = base * pf * sf;
   if (flyerChosen) r += ECONOMY.flyerBonus;
-  if (isDay2) r *= DAY2_REVENUE_FACTOR; // tighter margins on the encore day
   return Math.round(r);
 }
 
@@ -728,7 +660,7 @@ function computeRush(base: number): number {
 function startDay() {
   if (dayStarted) return;
   dayStarted = true;
-  dayStartCash = isDay2 ? DAY2_START_CASH : ECONOMY.startingCash;
+  dayStartCash = ECONOMY.startingCash;
   dayMoneyIn = 0;
   dayMoneyOut = 0;
   priceTier = "";
@@ -737,21 +669,6 @@ function startDay() {
   dealChosen = false;
   dayDecisions = [];
   setMoney(dayStartCash);
-}
-
-// Day 2's random midday surprise: a cash swing you did not choose, shown on the
-// objective line for a few seconds (and read aloud if TTS is on) before the day
-// carries on. Logged so it appears in the daily recap too.
-function fireDay2Surprise() {
-  const s = DAY2_SURPRISES[Math.floor(Math.random() * DAY2_SURPRISES.length)];
-  if (s.cash > 0) earn(s.cash);
-  else spend(-s.cash);
-  recordDecision("Day 2 surprise", s.text, s.text, 0);
-  setObjective(s.text);
-  const restore = activeShop.goals.afternoonFind;
-  setTimeout(function () {
-    if (currentPhase === PHASE_AFTERNOON) setObjective(restore);
-  }, 4800);
 }
 
 // The little counting animation behind changeMoney().
@@ -1457,7 +1374,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       updateScore("instinct", opt.score);
       const opener = opt.isBest ? "Exactly right!" : "Good try.";
       replyText?.setProperties({ text: opener + " " + opt.fb });
-      speak(opener + " " + opt.fb);
       meterChange?.setProperties({ text: "Owner's Instinct  +" + opt.score });
       recordDecision(title, opt.isBest ? "Chose the best answer" : "Missed the best answer", opt.fb, opt.score);
       beatQ?.setProperties({ display: "none" });
@@ -1855,7 +1771,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         showPhase(PHASE_AFTERNOON);
         setStageLook(world, "afternoon");
         setObjective(activeShop.goals.afternoonFind);
-        if (isDay2) fireDay2Surprise(); // an unchosen twist to keep Day 2 fresh
       },
     });
   });
@@ -2188,19 +2103,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         window.location.reload(); // a clean, full restart back to the title
       },
     });
-
-    // Day 2 toggle: switch difficulty and restart. The flag is read at startup.
-    doc.getElementById("day-toggle-label")?.setProperties({ text: isDay2 ? "Back to Day 1" : "Try Day 2 (Harder)" });
-    doc.getElementById("day-toggle-button")?.setProperties({
-      onClick: function () {
-        sfxClick();
-        try {
-          if (isDay2) localStorage.removeItem("bossForADay:day");
-          else localStorage.setItem("bossForADay:day", "2");
-        } catch { /* storage blocked */ }
-        window.location.reload();
-      },
-    });
   });
 
   // Decide the money personality from the final meters, fill the card, show it.
@@ -2268,7 +2170,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       app: "boss-for-a-day",
       schema: 1,
       timestamp: new Date().toISOString(),
-      day: dayNumber,
       shop: { id: activeShop.id, name: activeShop.shopName },
       player: name,
       personality: t.name,
@@ -2280,7 +2181,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     lastResultText = buildResultText(payload, best, worst);
 
     if (reportDoc) {
-      reportDoc.getElementById("report-eyebrow")?.setProperties({ text: activeShop.shopName.toUpperCase() + (isDay2 ? " · DAY 2" : "") });
+      reportDoc.getElementById("report-eyebrow")?.setProperties({ text: activeShop.shopName.toUpperCase() });
       reportDoc.getElementById("greeting")?.setProperties({ text: "Great work, " + name + "!" });
       reportDoc.getElementById("personality-name")?.setProperties({ text: t.name });
       reportDoc.getElementById("personality-blurb")?.setProperties({ text: blurb });

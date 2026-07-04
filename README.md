@@ -47,7 +47,6 @@ A student can also tap **Copy My Results** on the report to put a plain-text ver
   "app": "boss-for-a-day",
   "schema": 1,
   "timestamp": "2026-07-04T18:30:00.000Z", // ISO 8601, UTC
-  "day": 1,                     // 1 = normal, 2 = the tighter-margins replay
   "shop":   { "id": "bakery", "name": "Sweet Capital Bakery" }, // id: "bakery" | "surf" | "repair"
   "player": "Ada",              // chosen character name
   "personality": "Boss Material", // the report's earned title
