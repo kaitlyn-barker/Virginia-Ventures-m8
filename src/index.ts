@@ -744,6 +744,12 @@ void nextPhase; // called by the panels in later prompts
 // ============================================================================
 // THE WORLD
 // ============================================================================
+// Opt into the pointer-events debug registry BEFORE the world (and its input
+// pipeline) is created. The library only populates this map if it already
+// exists; the stuck-pointer watchdog below needs it to see every pointer
+// (mouse, touch, and each XR controller ray).
+(globalThis as any).pointerEventspointerMap = new Map();
+
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
   assets: {},
   xr: {
@@ -850,6 +856,42 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
   }
   setInterval(runFrameTasks, 33);
+
+  // --------------------------------------------------------------------------
+  // STUCK-POINTER WATCHDOG
+  // Every option button in this game hides its own beat (or whole panel) in its
+  // onClick, and @pmndrs/pointer-events has a hole: if the pressed element is
+  // gone by the time the pointer-up is processed, Pointer.up() early-returns on
+  // its null intersection WITHOUT releasing the implicit pointer capture. The
+  // pointer then stays captured by the dead element forever and every later
+  // click - mouse on desktop, controller ray in the headset - is silently
+  // swallowed. The symptom is "the options stop being clickable" partway
+  // through the day. A capture with no buttons held is exactly that leaked
+  // state (a healthy capture only exists while a button/trigger is down), so
+  // release it. Reads only public Pointer methods, and every access is guarded
+  // so an SDK update can never turn this watchdog into a crash.
+  // --------------------------------------------------------------------------
+  tick(function () {
+    const pointerMap = (globalThis as any).pointerEventspointerMap as
+      | Map<number, any>
+      | undefined;
+    if (!pointerMap) return;
+    pointerMap.forEach(function (pointer) {
+      try {
+        if (
+          pointer &&
+          typeof pointer.getPointerCapture === "function" &&
+          pointer.getPointerCapture() != null &&
+          typeof pointer.getButtonsDown === "function" &&
+          pointer.getButtonsDown().size === 0
+        ) {
+          pointer.clearPointerCapture?.();
+        }
+      } catch {
+        /* never let a pointer probe break the frame loop */
+      }
+    });
+  });
 
   // --------------------------------------------------------------------------
   // HIDDEN-PANEL CLICK GUARD
@@ -982,10 +1024,30 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // a panel's content is set, so a one-time pass misses them - a panel placed
   // behind Gus or a building would then show its boxes but hide its words. This
   // keeps the WHOLE visible panel on top, frame after frame.
+  //
+  // The same loop is also the self-heal for dead panels: the UI stack can leave
+  // stale, invisible hit-geometry floating at a panel's spot after its content
+  // changes, and a panel standing in that shadow stops responding to taps
+  // entirely (the "options are not clickable" bug). Re-presenting a panel that
+  // has sat unanswered for a while moves it to a fresh spot in front of the
+  // player, out of the stale geometry, where its buttons work again - and as a
+  // bonus it re-centers a panel for a player who wandered away from it.
+  const PANEL_NUDGE_MS = 8000;
   const storyPanels: any[] = [];
   tick(function () {
+    const now = Date.now();
     for (const p of storyPanels) {
-      if (p.object3D && p.object3D.visible) applyPanelOnTop(p);
+      const o3d = p.object3D;
+      if (!o3d || !o3d.visible) {
+        p.__visibleSince = 0;
+        continue;
+      }
+      applyPanelOnTop(p);
+      if (!p.__visibleSince) p.__visibleSince = now;
+      if (now - p.__visibleSince > PANEL_NUDGE_MS) {
+        p.__visibleSince = now;
+        presentPanel(p);
+      }
     }
   }, 33);
 
