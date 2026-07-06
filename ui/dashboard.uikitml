@@ -1,4 +1,4 @@
-<!-- In-headset dashboard for Boss for a Day. Rides with the view in VR. -->
+<!-- In-headset dashboard for Boss for a Day. Mounted above the storefront sign in VR. -->
 <!-- Default colors are the bakery look; surf and repair are themed at runtime. -->
 <style>
   .dash { display: flex; flex-direction: column; align-items: stretch; padding: 4; width: 72; background-color: #f3e9d2; border-width: 1; border-color: #5b3a24; border-radius: 4; }
