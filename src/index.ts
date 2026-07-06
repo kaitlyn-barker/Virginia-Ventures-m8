@@ -437,9 +437,9 @@ function refreshHUD() {
 }
 
 // ---- In-headset dashboard: keep its numbers in step with the game ----
-// The follow loop calls this each tick while you are in the headset. It reads
-// the same live numbers the corner overlay uses, and only pushes a value when
-// it actually changed, so the panel is never redrawn for no reason.
+// The dashboard frame task calls this each tick while you are in the headset.
+// It reads the same live numbers the corner overlay uses, and only pushes a
+// value when it actually changed, so the panel is never redrawn for no reason.
 let dashboardDoc: any = null;
 const DASH_TRACK = 64; // must match the .track width in ui/dashboard.uikitml
 let _lastSat = -1;
@@ -1081,9 +1081,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // ======================================================================
   // IN-HEADSET DASHBOARD
   // The corner overlay is a flat screen element and does not render inside
-  // the headset, so there we show this 3D panel and have it ride along with
-  // the view so it is always visible. On desktop it stays hidden, because the
-  // corner overlay covers that. Wired to live numbers in a later step.
+  // the headset, so there we show this 3D panel instead. It is WORLD-LOCKED:
+  // placed once, in front of where you are standing when the headset view
+  // starts, and then it stays put like a sign on a post. A panel that rides
+  // along with the head is a classic VR comfort violation (the world moves
+  // with you), so it must never follow the view. On desktop it stays hidden,
+  // because the corner overlay covers that.
   // ======================================================================
   const dashboardPanel = world
     .createTransformEntity()
@@ -1095,53 +1098,57 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     dashboardDoc = doc;
   });
 
-  // --- Where the dashboard sits in your view (metres). Tune these in headset. ---
-  // Kept low and off to the left so it reads like a glance-down instrument panel
-  // instead of floating in your forward gaze and covering the world / other panels.
+  // --- Where the dashboard is planted, relative to where you stand when the
+  // headset view starts (metres). Tune these in headset. Kept low and off to
+  // the left so it reads like an instrument panel on a stand: easy to glance
+  // at, clear of your forward gaze and of the story panels.
   const DASH_DIST = 1.45;  // how far in front of you
   const DASH_DROP = 0.95;  // how far below your eye line (top edge sits well under gaze)
   const DASH_SIDE = -0.78; // sideways shift (negative = left), clear of the center line
-  const DASH_LERP = 0.18;  // 0..1, how quickly it catches up when you turn
 
   const _dashEye = new Vector3();
   const _dashFwd = new Vector3();
   const _dashRight = new Vector3();
-  const _dashUp = new Vector3();
-  const _dashTarget = new Vector3();
   const _dashWorldUp = new Vector3(0, 1, 0);
+  let dashPlaced = false; // false until the panel is planted for this VR session
 
   tick(function () {
     const o3d = dashboardPanel.object3D;
     if (!o3d) return;
-    // Desktop uses the corner overlay; keep the 3D one hidden there.
+    // Desktop uses the corner overlay; keep the 3D one hidden there. Also
+    // forget the placement, so re-entering VR plants it fresh in front of
+    // wherever you are standing then.
     if (world.visibilityState.peek() === VisibilityState.NonImmersive) {
       o3d.visible = false;
+      dashPlaced = false;
       return;
     }
-    const cam = world.camera as any;
-    cam.getWorldPosition(_dashEye);
-    cam.getWorldDirection(_dashFwd);
-    _dashFwd.normalize();
-    _dashRight.crossVectors(_dashFwd, _dashWorldUp).normalize();
-    _dashUp.crossVectors(_dashRight, _dashFwd).normalize();
-    _dashTarget.copy(_dashEye)
-      .addScaledVector(_dashFwd, DASH_DIST)
-      .addScaledVector(_dashUp, -DASH_DROP)
-      .addScaledVector(_dashRight, DASH_SIDE);
-    if (!o3d.visible) {
-      o3d.position.copy(_dashTarget); // snap into place the first time
-      o3d.visible = true;
-    } else {
-      o3d.position.lerp(_dashTarget, DASH_LERP); // smooth follow afterwards
+    if (!dashPlaced) {
+      // Plant it ONCE, then leave it alone. Forward is flattened to the
+      // horizon so a glance up or down at entry does not skew the placement.
+      const cam = world.camera as any;
+      cam.getWorldPosition(_dashEye);
+      cam.getWorldDirection(_dashFwd);
+      _dashFwd.y = 0;
+      if (_dashFwd.lengthSq() < 1e-6) _dashFwd.set(0, 0, -1);
+      _dashFwd.normalize();
+      _dashRight.crossVectors(_dashFwd, _dashWorldUp).normalize();
+      o3d.position
+        .copy(_dashEye)
+        .addScaledVector(_dashFwd, DASH_DIST)
+        .addScaledVector(_dashRight, DASH_SIDE);
+      o3d.position.y = _dashEye.y - DASH_DROP;
+      // Because it sits low, tilt it up so the face aims at the eyes (like a
+      // car dashboard) instead of lying flat below your view.
+      const dx = _dashEye.x - o3d.position.x;
+      const dy = _dashEye.y - o3d.position.y;
+      const dz = _dashEye.z - o3d.position.z;
+      const yaw = Math.atan2(dx, dz);
+      const pitch = -Math.atan2(dy, Math.hypot(dx, dz));
+      o3d.rotation.set(pitch, yaw, 0, "YXZ");
+      dashPlaced = true;
     }
-    // Face the player. Because it now sits low, tilt it up so the face aims at
-    // the eyes (like a car dashboard) instead of lying flat below your view.
-    const _dashDX = _dashEye.x - o3d.position.x;
-    const _dashDY = _dashEye.y - o3d.position.y;
-    const _dashDZ = _dashEye.z - o3d.position.z;
-    const _dashYaw = Math.atan2(_dashDX, _dashDZ);
-    const _dashPitch = -Math.atan2(_dashDY, Math.hypot(_dashDX, _dashDZ));
-    o3d.rotation.set(_dashPitch, _dashYaw, 0, "YXZ");
+    o3d.visible = true;
     refreshVrDashboard();
   }, 33);
 
